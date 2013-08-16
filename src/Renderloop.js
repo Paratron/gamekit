@@ -48,6 +48,8 @@
             e,
             l,
             c,
+            layerLen,
+            entityLen,
             canvasWidth,
             canvasHeight;
 
@@ -65,14 +67,16 @@
             c.clearRect(clearX, clearY, clearW, clearH);
         }
 
-        for (i = gamekit.layer.length - 1; i > 0; i--) {
-            l = gamekit.layer[i];
+        layerLen = gamekit.layer.length - 1;
+        for (i = layerLen+1; i--;) {
+            l = gamekit.layer[layerLen - i];
             if(!l.visible || !l.alpha){
                 continue;
             }
 
-            for (j = l.entities.length - 1; j > 0; j--) {
-                e = l.entities[key2];
+            entityLen = l.entities.length - 1;
+            for (j = entityLen+1; j--;) {
+                e = l.entities[entityLen-j];
                 if(e.rotation > 360){
                     e.rotation -= 360;
                 }

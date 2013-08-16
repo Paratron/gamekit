@@ -63,8 +63,8 @@
         if(modulesLoading.length){
             for (key in modulesLoading) {
                 s = document.createElement('script');
-                s.onload = loadCallback();
-                s.onerror = errorCallback();
+                s.onload = loadCallback;
+                s.onerror = errorCallback;
                 document.head.appendChild(s);
                 s.src = modulesLoading[key];
                 modulesLoading[key] = s;
