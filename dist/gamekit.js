@@ -458,8 +458,8 @@
     };
 
     function mainLoop(runTime){
-        var key,
-            key2,
+        var i,
+            j,
             e,
             l,
             c,
@@ -480,13 +480,13 @@
             c.clearRect(clearX, clearY, clearW, clearH);
         }
 
-        for (key in gamekit.layer) {
-            l = gamekit.layer[key];
+        for (i = gamekit.layer.length - 1; i > 0; i--) {
+            l = gamekit.layer[i];
             if(!l.visible || !l.alpha){
                 continue;
             }
 
-            for (key2 in l.entities) {
+            for (j = l.entities.length - 1; j > 0; j--) {
                 e = l.entities[key2];
                 if(e.rotation > 360){
                     e.rotation -= 360;
