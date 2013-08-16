@@ -76,3 +76,32 @@
             return this._promiseChild;
         }
     };
+
+    /**
+     * This method accepts n promise elements and will resolve its own promise, when all received promises have been fulfilled.
+     * If one of the promises fail, the methods promise will fail, too.
+     * @param {...gamekit.Promise} promises Align as many promises as you wish.
+     * @returns {gamekit.Promise}
+     */
+    gamekit.all = function(promises){
+        var promise,
+            responses,
+            i;
+
+        promise = new gamekit.Promise();
+        responses = 0;
+
+        function resolve(){
+            responses++;
+            if(responses === arguments.length){
+                promise.resolve();
+            }
+        }
+
+        for(i = 0; i < arguments.length; i++){
+            arguments[i].then(resolve, promise.reject);
+        }
+
+
+        return promise;
+    };
