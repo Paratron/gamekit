@@ -102,6 +102,5 @@
             arguments[i].then(resolve, promise.reject);
         }
 
-
         return promise;
     };
