@@ -20,6 +20,7 @@ Currently implements:
 * Sprites (rotate/stretch/repeatable)
 * Property tweening on Sprites (absolute + relative)
 * Entity Groups
+* Keyboard input capturing
 
 Docs are coming whenever I feel insane enough for writing them.
 
