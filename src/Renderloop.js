@@ -1,4 +1,5 @@
-    var gameRunning;
+    var gameRunning,
+        lastRunTime;
 
     /**
      * This starts the main loop.
@@ -59,12 +60,26 @@
 
         window.requestAnimationFrame(mainLoop);
 
+        //Update the last run time for the tween processing.
+        lastRunTime = runTime;
+
         c = ctx;
         canvasWidth = gamekit.width();
         canvasHeight = gamekit.height();
 
         if(clearW || clearH){
             c.clearRect(clearX, clearY, clearW, clearH);
+        }
+
+        //Lets update all tweens, first.
+        for(i = tweenQueue.length; i--;){
+            j = tweenQueue[i];
+            if(j.finished){
+                tweenQueue.splice(i, 1);
+                continue;
+            }
+
+            j.update(runTime);
         }
 
         layerLen = gamekit.layer.length - 1;
