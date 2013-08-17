@@ -124,7 +124,8 @@
                 startProperties,
                 diffs,
                 propertiesUsed,
-                key;
+                key,
+                matchresult;
 
             beginTime = lastRunTime;
             endTime = beginTime + duration;
@@ -137,7 +138,27 @@
             for (key in properties) {
                 //Only keep properties that are actually animatable.
                 //That are properties that are part of the object, as well as numerics.
-                if(this.hasOwnProperty(key) && (!isNaN(parseFloat(this[key])) && isFinite(this[key]))){
+                if(!this.hasOwnProperty(key)){
+                    continue;
+                }
+
+                //Relative string target
+                if(typeof properties[key] === 'string'){
+                    matchresult = properties[key].match(/^([+-])=(\d+)$/);
+                    if(matchresult){
+                        startProperties[key] = this[key];
+                        if(matchresult[1] === '+'){
+                            diffs[key] = parseFloat(matchresult[2]);
+                        } else {
+                            diffs[key] = -parseFloat(matchresult[2]);
+                        }
+                        propertiesUsed++;
+                    }
+                    continue;
+                }
+
+                //Absolute numeric target
+                if(!isNaN(parseFloat(this[key])) && isFinite(this[key])){
                     startProperties[key] = this[key];
                     diffs[key] = properties[key] - this[key];
                     propertiesUsed++;
