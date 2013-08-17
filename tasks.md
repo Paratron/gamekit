@@ -6,5 +6,4 @@ Gamekit Tasks
 - [x] Add prepared tweens
 - [x] Add tweening for relative values
 - [x] Add Object Groups
-- [ ] Implement repeatable promise chains
-- [ ] Implement input class (keyboard, pointer)
+- [ ] Implement input class ([x] keyboard, [ ] pointer)

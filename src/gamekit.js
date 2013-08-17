@@ -83,6 +83,10 @@
 
     //==================================================================================================================
 
+//@@include('Input.js');
+
+    //==================================================================================================================
+
     //The main module is required and automatically loaded.
     //Its set into a setTimout so the dev can overwrite the moduleFolder and assetFolder properties of the gamekit object before its initializing the game.
     setTimeout(function (){
