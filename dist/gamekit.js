@@ -4,6 +4,8 @@
  * A approach to create a minimalistic toolkit for canvas games.
  *
  * @author: Christian Engel <hello@wearekiss.com>
+ * @license: CC BY-NC 3.0 (http://creativecommons.org/licenses/by-nc/3.0/)
+ * @license: Request commercial licenses from hello@wearekiss.com
  */
 (function (){
     'use strict';

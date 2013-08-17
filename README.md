@@ -18,6 +18,7 @@ Currently implements:
 * Renderloop
 * Layers support
 * Sprites (rotate/stretch/repeatable)
+* Property tweening on Sprites
 
 Docs are coming whenever I feel insane enough for writing them.
 
