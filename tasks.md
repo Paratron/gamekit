@@ -5,4 +5,4 @@ Gamekit Tasks
 [x] Add tweens
 [x] Add prepared tweens
 [ ] Add tweening for relative values
-[ ] Add Object Groups
+[x] Add Object Groups

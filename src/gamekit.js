@@ -79,6 +79,8 @@
 
 //@@include('Sprite.js');
 
+//@@include('Group.js');
+
     //==================================================================================================================
 
     //The main module is required and automatically loaded.

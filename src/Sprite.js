@@ -25,7 +25,8 @@
         this.originX = 0;
         this.originY = 0;
         this.rotation = 0;
-        this.scale = 1;
+        this.scaleX = 1;
+        this.scaleY = 1;
         this.alpha = 1;
         this.stretch = false;
         this.asset = asset;
@@ -37,18 +38,19 @@
                 oX,
                 oY;
 
-            w = this.w * this.scale;
-            h = this.h * this.scale;
-            oX = this.originX * this.scale;
-            oY = this.originY * this.scale;
+            oX = this.originX;
+            oY = this.originY;
+            w = this.w;
+            h = this.h;
 
             ctx.save();
             ctx.translate(this.x, this.y);
 
-
             if(this.rotation){
                 ctx.rotate(this.rotation * Math.PI / 360);
             }
+
+            ctx.scale(this.scaleX, this.scaleY);
 
             if(!this.stretch && (w !== this.asset.width || h !== this.asset.height)){
                 if(!this.pattern){

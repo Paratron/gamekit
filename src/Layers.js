@@ -9,6 +9,10 @@
     }
 
     GamekitLayer.prototype = {
+        /**
+         * Adds a new renderable entity (Sprite, Group) to the layer.
+         * @param {*} element
+         */
         attach: function (element){
             this.entities.push(element);
         }

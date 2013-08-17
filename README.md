@@ -19,6 +19,7 @@ Currently implements:
 * Layers support
 * Sprites (rotate/stretch/repeatable)
 * Property tweening on Sprites
+* Entity Groups
 
 Docs are coming whenever I feel insane enough for writing them.
 

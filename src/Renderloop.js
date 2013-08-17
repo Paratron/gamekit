@@ -92,9 +92,7 @@
             entityLen = l.entities.length - 1;
             for (j = entityLen+1; j--;) {
                 e = l.entities[entityLen-j];
-                if(e.rotation > 360){
-                    e.rotation -= 360;
-                }
+
                 c.globalAlpha = e.alpha * l.alpha;
 
                 e.draw(c);
