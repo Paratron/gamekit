@@ -193,7 +193,6 @@
                     if(t === 1){
                         queueObject.finished = true;
                         promise.resolve();
-                        return;
                     }
                 }
             };
