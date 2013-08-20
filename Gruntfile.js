@@ -63,8 +63,9 @@ module.exports = function (grunt){
             gamekit: {
                 options: {
                     specs: 'test/spec.html',
+                    helpers: 'test/helper.js'
                 },
-                src: 'src/gamekit.js'
+                src: 'src/*.js'
             }
         }
     });
