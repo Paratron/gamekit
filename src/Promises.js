@@ -11,7 +11,7 @@
             var result,
                 that;
 
-            //Has a soccess function already been attached?
+            //Has a success function already been attached?
             if(typeof this._promiseSuccess === 'function'){
                 result = this._promiseSuccess.apply(this._promiseTarget, arguments);
 
@@ -83,7 +83,7 @@
      * @param {...gamekit.Promise} promises Align as many promises as you wish.
      * @returns {gamekit.Promise}
      */
-    gamekit.all = function(promises){
+    gamekit.all = function (promises){
         var promise,
             responses,
             i;
@@ -98,9 +98,154 @@
             }
         }
 
-        for(i = 0; i < arguments.length; i++){
+        for (i = 0; i < arguments.length; i++) {
             arguments[i].then(resolve, promise.reject);
         }
 
         return promise;
+    };
+
+    /**
+     * This will return a function, that will execute the functions passed to gamekit.chain() in the order they have
+     * been passed.
+     * If the chained functions return promises, the execution of the next function in the chain will wait until the
+     * promise is resolved.
+     *
+     * The returned chained function will return a promise upon execution.
+     * @param {...Function} functions
+     * @returns {Function} Executes the chain upon call. Returns a promise.
+     */
+    gamekit.chain = function (functions){
+        var chain;
+
+        chain = arguments;
+
+        return function (){
+            var index,
+                promise;
+
+            index = 0;
+            promise = new gamekit.Promise();
+
+            function callNext(){
+                var result;
+
+                if(index >= chain.length){
+                    promise.resolve();
+                    return;
+                }
+
+                result = chain[index]();
+
+                index++;
+
+                if(result instanceof gamekit.Promise){
+                    result.then(function (){
+                        callNext();
+                    });
+                    return;
+                }
+                callNext();
+            }
+
+            callNext();
+
+            return promise;
+        };
+    };
+
+    /**
+     * Works much alike gamekit.chain(), but all given functions will be executed right away.
+     * If the paralleled functions return promises, the returned paralleled function will wait to resolve its promise,
+     * until the last promise of any given function has been resolved.
+     *
+     * The returned paralleled function will return a promise upon execution.
+     * @param {...Function} functions
+     * @returns {Function} Executes the paralleled functions upon call. Returns a promise.
+     */
+    gamekit.parallel = function (functions){
+        var chain;
+
+        chain = arguments;
+
+        return function (){
+            var index,
+                toResolve,
+                promise;
+
+            index = 0;
+            promise = new gamekit.Promise();
+            toResolve = chain.length;
+
+            function callFinished(){
+                toResolve--;
+
+                if(toResolve === 0){
+                    promise.resolve();
+                    return;
+                }
+            }
+
+            function callNext(){
+                var result;
+
+                if(index >= chain.length){
+                    return;
+                }
+
+                result = chain[index]();
+
+                index++;
+
+                if(result instanceof gamekit.Promise){
+                    result.then(callFinished);
+                } else {
+                    callFinished();
+                }
+
+                callNext();
+            }
+
+            callNext();
+
+            return promise;
+        }
+    };
+
+    /**
+     * Will return a function that upon call returns a promise that will be resolved after the given amount of milliseconds.
+     * Made to just pause promise chains with an eye on animation.
+     * @param {Number} duration
+     * @returns {Function}
+     */
+    gamekit.wait = function (duration){
+        return function (){
+            var promise,
+                queueObject,
+                beginTime,
+                endTime;
+
+            promise = new gamekit.Promise();
+            beginTime = lastRunTime;
+            endTime = beginTime + duration;
+
+            queueObject = {
+                finished: false,
+                update: function (currentTime){
+                    if(beginTime === undefined){
+                        beginTime = currentTime;
+                        endTime = beginTime + duration;
+                    }
+
+                    if(currentTime >= endTime){
+                        queueObject.finished = true;
+                        promise.resolve();
+                    }
+                }
+            };
+
+            tweenQueue.push(queueObject);
+
+            return promise;
+        };
     };

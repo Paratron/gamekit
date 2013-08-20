@@ -18,7 +18,9 @@ Currently implements:
 * Renderloop
 * Layers support
 * Sprites (rotate/stretch/repeatable)
-* Property tweening on Sprites
+* Property tweening on Sprites (absolute + relative)
+* Entity Groups
+* Keyboard input capturing
 
 Docs are coming whenever I feel insane enough for writing them.
 

@@ -25,7 +25,8 @@
         this.originX = 0;
         this.originY = 0;
         this.rotation = 0;
-        this.scale = 1;
+        this.scaleX = 1;
+        this.scaleY = 1;
         this.alpha = 1;
         this.stretch = false;
         this.asset = asset;
@@ -37,18 +38,19 @@
                 oX,
                 oY;
 
-            w = this.w * this.scale;
-            h = this.h * this.scale;
-            oX = this.originX * this.scale;
-            oY = this.originY * this.scale;
+            oX = this.originX;
+            oY = this.originY;
+            w = this.w;
+            h = this.h;
 
             ctx.save();
             ctx.translate(this.x, this.y);
 
-
             if(this.rotation){
                 ctx.rotate(this.rotation * Math.PI / 360);
             }
+
+            ctx.scale(this.scaleX, this.scaleY);
 
             if(!this.stretch && (w !== this.asset.width || h !== this.asset.height)){
                 if(!this.pattern){
@@ -122,7 +124,8 @@
                 startProperties,
                 diffs,
                 propertiesUsed,
-                key;
+                key,
+                matchresult;
 
             beginTime = lastRunTime;
             endTime = beginTime + duration;
@@ -135,7 +138,27 @@
             for (key in properties) {
                 //Only keep properties that are actually animatable.
                 //That are properties that are part of the object, as well as numerics.
-                if(this.hasOwnProperty(key) && (!isNaN(parseFloat(this[key])) && isFinite(this[key]))){
+                if(!this.hasOwnProperty(key)){
+                    continue;
+                }
+
+                //Relative string target
+                if(typeof properties[key] === 'string'){
+                    matchresult = properties[key].match(/^([+-])=(\d+)$/);
+                    if(matchresult){
+                        startProperties[key] = this[key];
+                        if(matchresult[1] === '+'){
+                            diffs[key] = parseFloat(matchresult[2]);
+                        } else {
+                            diffs[key] = -parseFloat(matchresult[2]);
+                        }
+                        propertiesUsed++;
+                    }
+                    continue;
+                }
+
+                //Absolute numeric target
+                if(!isNaN(parseFloat(this[key])) && isFinite(this[key])){
                     startProperties[key] = this[key];
                     diffs[key] = properties[key] - this[key];
                     propertiesUsed++;
@@ -170,7 +193,6 @@
                     if(t === 1){
                         queueObject.finished = true;
                         promise.resolve();
-                        return;
                     }
                 }
             };
