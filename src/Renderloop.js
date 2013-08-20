@@ -50,9 +50,7 @@
             l,
             c,
             layerLen,
-            entityLen,
-            canvasWidth,
-            canvasHeight;
+            entityLen;
 
         if(!gameRunning){
             return;
@@ -64,8 +62,6 @@
         lastRunTime = runTime;
 
         c = ctx;
-        canvasWidth = gamekit.width();
-        canvasHeight = gamekit.height();
 
         if(clearW || clearH){
             c.clearRect(clearX, clearY, clearW, clearH);
