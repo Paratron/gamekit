@@ -10,6 +10,7 @@ gamekit.Group = function (){
     this.scaleX = 1;
     this.scaleY = 1;
     this.entities = [];
+    this.debugDrawing = false;
 };
 gamekit.Group.prototype = {
     /**
@@ -90,7 +91,7 @@ gamekit.Group.prototype = {
             e.draw(ctx);
         }
 
-        if(gamekit.renderDebugObjects){
+        if(this.debugDrawing){
             var bounds;
             bounds = this.getBoundaries();
             ctx.beginPath();

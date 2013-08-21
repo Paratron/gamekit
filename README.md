@@ -21,6 +21,9 @@ Currently implements:
 * Property tweening on Sprites (absolute + relative)
 * Entity Groups
 * Keyboard input capturing
+* Pointer (mouse, touch) input capturing
+* Pointer area objects
+* Detecting pointer events directly on sprites
 
 Docs are coming whenever I feel insane enough for writing them.
 

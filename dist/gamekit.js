@@ -644,9 +644,7 @@
             l,
             c,
             layerLen,
-            entityLen,
-            canvasWidth,
-            canvasHeight;
+            entityLen;
 
         if(!gameRunning){
             return;
@@ -658,8 +656,6 @@
         lastRunTime = runTime;
 
         c = ctx;
-        canvasWidth = gamekit.width();
-        canvasHeight = gamekit.height();
 
         if(clearW || clearH){
             c.clearRect(clearX, clearY, clearW, clearH);
@@ -729,6 +725,7 @@
         this.alpha = 1;
         this.stretch = false;
         this.asset = asset;
+        this.debugDrawing = false;
     };
     gamekit.Sprite.prototype = {
         draw: function (ctx){
@@ -746,7 +743,7 @@
             ctx.translate(this.x, this.y);
 
             if(this.rotation){
-                ctx.rotate(this.rotation * Math.PI / 360);
+                ctx.rotate(this.rotation * Math.PI / 180);
             }
 
             ctx.scale(this.scaleX, this.scaleY);
@@ -764,7 +761,7 @@
 
             ctx.drawImage(this.asset, -oX, -oY, w, h);
 
-            if(gamekit.renderDebugObjects){
+            if(this.debugDrawing){
                 ctx.beginPath();
                 ctx.strokeStyle = '#0ff';
                 ctx.strokeRect(-oX, -oY, w, h);
@@ -929,6 +926,7 @@ gamekit.Group = function (){
     this.scaleX = 1;
     this.scaleY = 1;
     this.entities = [];
+    this.debugDrawing = false;
 };
 gamekit.Group.prototype = {
     /**
@@ -1009,7 +1007,7 @@ gamekit.Group.prototype = {
             e.draw(ctx);
         }
 
-        if(gamekit.renderDebugObjects){
+        if(this.debugDrawing){
             var bounds;
             bounds = this.getBoundaries();
             ctx.beginPath();
@@ -1062,7 +1060,8 @@ gamekit.Group.prototype.prepareTween = gamekit.Sprite.prototype.prepareTween;;
     var keyboardInputInitialized,
         pointerInputInitialized,
         keyboardInputListeners,
-        keymap;
+        keymap,
+        shadowCtx;
 
     keymap = {
         8: 'backspace',
@@ -1182,27 +1181,252 @@ gamekit.Group.prototype.prepareTween = gamekit.Sprite.prototype.prepareTween;;
 
             keyname = keymap[e.keyCode];
 
-            if(!keyname) return;
+            if(!keyname){
+                return;
+            }
 
             if(keyboardInputListeners[keyname] === undefined){
                 return;
             }
 
-            for(key in keyboardInputListeners[keyname]){
+            for (key in keyboardInputListeners[keyname]) {
                 keyboardInputListeners[keyname][key].resolve();
             }
         };
 
-        /*window.onkeyup = function (e){
-
-        };*/
-
         keyboardInputInitialized = true;
     }
 
-    function inputInitPointers(){
+    //---------------------------------------------------------------------------
 
+    var pointerCaptureDown,
+        pointerCaptureUp,
+        pointerCaptureMove;
+
+    function inputInitPointers(){
+        var shadowCanvas;
+
+        if(pointerInputInitialized){
+            return;
+        }
+
+        pointerInputInitialized = true;
+
+        shadowCanvas = document.createElement('canvas');
+        shadowCanvas.width = canvas.width;
+        shadowCanvas.height = canvas.height;
+        shadowCtx = shadowCanvas.getContext('2d');
+        shadowCtx.globalCompositeOperation = 'copy';
+        shadowCtx.fillStyle = '#f00';
+
+        canvas.onmousedown = function (e){
+            if(!pointerCaptureDown){
+                return;
+            }
+            tracePointer(e, 'pointerdown');
+        };
+
+        canvas.onmouseup = function (e){
+            if(!pointerCaptureUp){
+                return;
+            }
+            tracePointer(e, 'pointerup');
+        };
+
+        canvas.onmousemove = function (e){
+            if(!pointerCaptureMove){
+                return;
+            }
+            tracePointer(e, 'pointermove');
+        };
     }
+
+    /**
+     * Notice: Disabled PointerAreas are not triggered!
+     * @param e
+     */
+    function tracePointer(e, eventname){
+        var x,
+            y,
+            layerLen,
+            l,
+            entityLen,
+            j,
+            i;
+
+        x = e.clientX;
+        y = e.clientY;
+
+        if(!gameRunning){
+            return;
+        }
+
+        layerLen = gamekit.layer.length - 1;
+        for (i = layerLen + 1; i--;) {
+            l = gamekit.layer[layerLen - i];
+            if(!l.visible){
+                continue;
+            }
+
+            entityLen = l.entities.length - 1;
+            for (j = entityLen + 1; j--;) {
+                e = l.entities[entityLen - j];
+                if(e.disabled){
+                    continue;
+                }
+                e.shadowDraw(x, y, eventname);
+            }
+        }
+    }
+
+    function pointerHitTest(x, y){
+        var pData;
+
+        pData = shadowCtx.getImageData(x, y, 1, 1).data;
+
+        if(pData[0] || pData[1] || pData[2] || pData[3]){
+            return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * The pointer area is an invisible object to be added to a layer or entity group.
+     * When on stage, it captures clicks/taps that are made inside the specified area.
+     * @constructor
+     */
+    gamekit.PointerArea = function (){
+        inputInitPointers();
+        this.x = 0;
+        this.y = 0;
+        this.w = gamekit.width();
+        this.h = gamekit.height();
+        this.originX = 0;
+        this.originY = 0;
+        this.rotation = 0;
+        this.scaleX = 1;
+        this.scaleY = 1;
+        this._attachedEvents = {};
+        this.debugDrawing = false;
+        this.disabled = false;
+    };
+    gamekit.PointerArea.prototype = {
+        draw: function (ctx){
+            if(!this.debugDrawing){
+                return;
+            }
+
+            ctx.save();
+
+            ctx.translate(this.x, this.y);
+            if(this.rotation){
+                ctx.rotate(this.rotation * Math.PI / 180);
+            }
+
+            ctx.scale(this.scaleX, this.scaleY);
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#fff';
+            ctx.stroke();
+
+            ctx.restore();
+        },
+        shadowDraw: function (x, y, eventname){
+            if(this instanceof gamekit.Sprite && this.disabled === undefined){
+                return;
+            }
+
+            if(this instanceof gamekit.PointerArea && this._attachedEvents[eventname] === undefined){
+                return;
+            }
+
+            var key;
+
+            shadowCtx.save();
+
+            shadowCtx.translate(this.x, this.y);
+
+            if(this.rotation){
+                shadowCtx.rotate(this.rotation * Math.PI / 180);
+            }
+
+            shadowCtx.scale(this.scaleX, this.scaleY);
+
+            if(this instanceof gamekit.Sprite && !this._captureBoundingBox){
+                shadowCtx.drawImage(this.asset, -this.originX, -this.originY);
+                if(pointerHitTest(x, y)){
+                    for (key in this._attachedEvents[eventname]) {
+                        this._attachedEvents[eventname][key].resolve(x, y);
+                    }
+                }
+            }
+
+            if(this instanceof gamekit.PointerArea || (this._captureBoundingBox)){
+                shadowCtx.beginPath();
+                shadowCtx.fillRect(-this.originX, -this.originY, this.w, this.h);
+                shadowCtx.fill();
+                if(pointerHitTest(x, y)){
+                    for (key in this._attachedEvents[eventname]) {
+                        this._attachedEvents[eventname][key].resolve(x, y);
+                    }
+                }
+            }
+
+            if(this instanceof gamekit.Group){
+                for (key in this.entities) {
+                    this.entities[key].shadowDraw(x, y, eventname);
+                }
+            }
+
+            shadowCtx.restore();
+        },
+        /**
+         * Returns a promise for the desired event, that gets resolved whenever the event occurs.
+         * @param {String} eventName Possible events are: pointerdown, pointerup, pointermove
+         * @returns {gamekit.Promise}
+         */
+        on: function (eventName){
+            if(this._attachedEvents[eventName] === undefined){
+                this._attachedEvents[eventName] = [];
+            }
+
+            var promise;
+
+            promise = new gamekit.Promise();
+
+            switch (eventName) {
+            case 'pointerdown':
+                pointerCaptureDown = true;
+                break;
+            case 'pointerup':
+                pointerCaptureUp = true;
+                break;
+            case 'pointermove':
+                pointerCaptureMove = true;
+            }
+
+            this._attachedEvents[eventName].push(promise);
+
+            return promise;
+        }
+    };
+
+    gamekit.Sprite.prototype.shadowDraw = gamekit.PointerArea.prototype.shadowDraw;
+    gamekit.Group.prototype.shadowDraw = gamekit.PointerArea.prototype.shadowDraw;
+
+    /**
+     * Enable this sprite for capturing pointer events.
+     * This adds the method on() to the sprite object and will start capturing pointer events.
+     * @param {Boolean} [onBoundingBox=false] Set to true to capture touches within the sprites bounding box, instead within the pixel-perfect asset content. Default = false
+     */
+    gamekit.Sprite.prototype.pointerEnable = function (onBoundingBox){
+        inputInitPointers();
+        this._captureBoundingBox = onBoundingBox;
+        this._attachedEvents = {};
+        this.disabled = false;
+        this.on = gamekit.PointerArea.prototype.on;
+    };
 
 
     gamekit.input = {

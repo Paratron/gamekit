@@ -30,6 +30,7 @@
         this.alpha = 1;
         this.stretch = false;
         this.asset = asset;
+        this.debugDrawing = false;
     };
     gamekit.Sprite.prototype = {
         draw: function (ctx){
@@ -47,7 +48,7 @@
             ctx.translate(this.x, this.y);
 
             if(this.rotation){
-                ctx.rotate(this.rotation * Math.PI / 360);
+                ctx.rotate(this.rotation * Math.PI / 180);
             }
 
             ctx.scale(this.scaleX, this.scaleY);
@@ -65,7 +66,7 @@
 
             ctx.drawImage(this.asset, -oX, -oY, w, h);
 
-            if(gamekit.renderDebugObjects){
+            if(this.debugDrawing){
                 ctx.beginPath();
                 ctx.strokeStyle = '#0ff';
                 ctx.strokeRect(-oX, -oY, w, h);
