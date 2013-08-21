@@ -216,8 +216,8 @@ function tracePointer(e, eventname){
         j,
         i;
 
-    x = e.clientX;
-    y = e.clientY;
+    x = e.clientX - canvas.offsetLeft + window.scrollX;
+    y = e.clientY - canvas.offsetTop + window.scrollY;
 
     if(!gameRunning){
         return;
