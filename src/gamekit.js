@@ -14,7 +14,7 @@
         canvas,
         ctx;
 
-    canvas = document.getElementsByTagName('canvas')[0] || window.canvas;
+    canvas = document.getElementsByTagName('canvas')[0];
     ctx = canvas.getContext('2d');
 
     //RAF polyfill
