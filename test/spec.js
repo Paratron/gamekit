@@ -35,7 +35,7 @@ describe('Gamekit', function() {
 			}, 'ajax timed out', 5000);
 
 			runs(function() {
-				expect(asset).toEqual({ background: 'background.jpg', test : 'test.JPG' });
+				expect(asset).toEqual({ background: 'background.jpg' });
 			});
 		});
 
