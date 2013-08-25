@@ -91,8 +91,8 @@
 
                 c.globalAlpha = e.alpha * l.alpha;
 
+                e.update();
                 e.draw(c);
-
             }
         }
     }

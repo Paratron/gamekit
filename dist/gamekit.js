@@ -685,8 +685,8 @@
 
                 c.globalAlpha = e.alpha * l.alpha;
 
+                e.update();
                 e.draw(c);
-
             }
         }
     };
@@ -728,6 +728,7 @@
         this.debugDrawing = false;
     };
     gamekit.Sprite.prototype = {
+        update: function(){},
         draw: function (ctx){
             var w,
                 h,
@@ -929,6 +930,7 @@ gamekit.Group = function (){
     this.debugDrawing = false;
 };
 gamekit.Group.prototype = {
+    update: function(){},
     /**
      * Returns the boundary dimensions of this group.
      * @returns {*}
@@ -1004,6 +1006,7 @@ gamekit.Group.prototype = {
 
             ctx.globalAlpha = alpha * e.alpha;
 
+            e.update();
             e.draw(ctx);
         }
 

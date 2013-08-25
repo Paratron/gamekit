@@ -33,6 +33,7 @@
         this.debugDrawing = false;
     };
     gamekit.Sprite.prototype = {
+        update: function(){},
         draw: function (ctx){
             var w,
                 h,

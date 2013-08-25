@@ -13,6 +13,7 @@ gamekit.Group = function (){
     this.debugDrawing = false;
 };
 gamekit.Group.prototype = {
+    update: function(){},
     /**
      * Returns the boundary dimensions of this group.
      * @returns {*}
@@ -88,6 +89,7 @@ gamekit.Group.prototype = {
 
             ctx.globalAlpha = alpha * e.alpha;
 
+            e.update();
             e.draw(ctx);
         }
 
