@@ -56,7 +56,7 @@
      */
     gamekit.fetchAssets = function (assetNames){
         var promise,
-            key,
+            i,
             loadingAssets,
             loadedAssets,
             a,
@@ -123,25 +123,25 @@
             promise.reject();
         }
 
-        for (key in assetNames) {
-            assetNames[key] = assetNames[key].split(':');
+        for (i = 0; i < assetNames.length; i++) {
+            assetNames[i] = assetNames[i].split(':');
             if(assetNames[key].length !== 2){
                 promise.reject();
                 return promise;
             }
-            if(gamekit.a[assetNames[key][0]] === undefined){
+            if(gamekit.a[assetNames[i][0]] === undefined){
                 a = new Image();
                 a.onload = callbackFunction;
                 a.onerror = errorFunction;
                 a.assetKey = assetNames[key][0];
-                gamekit.a[assetNames[key][0]] = a;
-                loadingAssets.push(assetNames[key]);
+                gamekit.a[assetNames[i][0]] = a;
+                loadingAssets.push(assetNames[i]);
             }
         }
 
         if(loadingAssets.length){
-            for (key in loadingAssets) {
-                gamekit.a[loadingAssets[key][0]].src = gamekit.assetFolder + loadingAssets[key][1];
+            for (i = 0; i < loadingAssets.length; i++) {
+                gamekit.a[loadingAssets[i][0]].src = gamekit.assetFolder + loadingAssets[i][1];
             }
         } else {
             promise.resolve();
