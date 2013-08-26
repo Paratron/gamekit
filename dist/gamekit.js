@@ -658,7 +658,6 @@
             j,
             e,
             l,
-            c,
             layerLen,
             entityLen;
 
@@ -671,9 +670,7 @@
         //Update the last run time for the tween processing.
         lastRunTime = runTime;
 
-        c = ctx;
-
-        gamekit.onBeforeFrame(c);
+        gamekit.onBeforeFrame(ctx);
 
         if(clearW || clearH){
             c.clearRect(clearX, clearY, clearW, clearH);
@@ -701,14 +698,14 @@
             for (j = entityLen + 1; j--;) {
                 e = l.entities[entityLen - j];
 
-                c.globalAlpha = e.alpha * l.alpha;
+                ctx.globalAlpha = e.alpha * l.alpha;
 
                 e.update();
-                e.draw(c);
+                e.draw(ctx);
             }
         }
 
-        gamekit.onAfterFrame(c);
+        gamekit.onAfterFrame(ctx);
     };
 
     //==================================================================================================================
@@ -773,9 +770,8 @@
                 if(!this.pattern){
                     this.pattern = ctx.createPattern(this.asset, 'repeat');
                 }
-                ctx.rect(-oX, -oY, w, h);
                 ctx.fillStyle = this.pattern;
-                ctx.fill();
+                ctx.fillRect(-oX, -oY, w, h);
                 ctx.restore();
                 return;
             }
@@ -1042,7 +1038,6 @@ gamekit.Group.prototype = {
             ctx.arc(0, 0, 2, 0, 365);
             ctx.fill();
         }
-
 
         ctx.restore();
     },

@@ -58,9 +58,8 @@
                 if(!this.pattern){
                     this.pattern = ctx.createPattern(this.asset, 'repeat');
                 }
-                ctx.rect(-oX, -oY, w, h);
                 ctx.fillStyle = this.pattern;
-                ctx.fill();
+                ctx.fillRect(-oX, -oY, w, h);
                 ctx.restore();
                 return;
             }

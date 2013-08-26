@@ -106,7 +106,6 @@ gamekit.Group.prototype = {
             ctx.fill();
         }
 
-
         ctx.restore();
     },
     /**
