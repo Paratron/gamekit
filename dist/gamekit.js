@@ -618,6 +618,22 @@
         return canvas.height;
     };
 
+    /**
+     * Called, before each rendered frame.
+     * Can be overwritten with custom functions.
+     * @param {CanvasContext2D} ctx
+     */
+    gamekit.onBeforeFrame = function (){
+    };
+
+    /**
+     * Called, after each rendered frame.
+     * Can be overwritten with custom functions.
+     * @param {CanvasContext2D} ctx
+     */
+    gamekit.onAfterFrame = function (){
+    };
+
 
     var clearX,
         clearY,
@@ -657,12 +673,14 @@
 
         c = ctx;
 
+        gamekit.onBeforeFrame(c);
+
         if(clearW || clearH){
             c.clearRect(clearX, clearY, clearW, clearH);
         }
 
         //Lets update all tweens, first.
-        for(i = tweenQueue.length; i--;){
+        for (i = tweenQueue.length; i--;) {
             j = tweenQueue[i];
             if(j.finished){
                 tweenQueue.splice(i, 1);
@@ -673,15 +691,15 @@
         }
 
         layerLen = gamekit.layer.length - 1;
-        for (i = layerLen+1; i--;) {
+        for (i = layerLen + 1; i--;) {
             l = gamekit.layer[layerLen - i];
             if(!l.visible || !l.alpha){
                 continue;
             }
 
             entityLen = l.entities.length - 1;
-            for (j = entityLen+1; j--;) {
-                e = l.entities[entityLen-j];
+            for (j = entityLen + 1; j--;) {
+                e = l.entities[entityLen - j];
 
                 c.globalAlpha = e.alpha * l.alpha;
 
@@ -689,6 +707,8 @@
                 e.draw(c);
             }
         }
+
+        gamekit.onAfterFrame(c);
     };
 
     //==================================================================================================================
@@ -1493,6 +1513,28 @@ gamekit.limitCalls = function(func, timeSpacing){
         lastCall = Date.now();
         func.apply(this, arguments);
     }
+};
+
+/**
+ * Attempts to clone a object.
+ * @param obj
+ */
+gamekit.clone = function(obj){
+    var out;
+
+    if(obj instanceof gamekit.Sprite){
+        out = new gamekit.Sprite(out.asset);
+    }
+
+    if(obj instanceof gamekit.Group){
+        out = new gamekit.Group();
+    }
+
+    if(out === undefined){
+        out = {};
+    }
+
+
 };;
 
     //==================================================================================================================
