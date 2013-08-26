@@ -1515,10 +1515,17 @@ gamekit.limitCalls = function(func, timeSpacing){
  * @param obj
  */
 gamekit.clone = function(obj){
-    var out;
+    if(obj === null || typeof obj !== 'object'){
+        return obj;
+    }
+
+    var out,
+        keys,
+        i,
+        o;
 
     if(obj instanceof gamekit.Sprite){
-        out = new gamekit.Sprite(out.asset);
+        out = new gamekit.Sprite(obj.asset);
     }
 
     if(obj instanceof gamekit.Group){
@@ -1529,7 +1536,18 @@ gamekit.clone = function(obj){
         out = {};
     }
 
+    keys = Object.keys(obj);
 
+    for(i = 0; i < keys.length; i++){
+        o = obj[keys[i]];
+        if(o instanceof gamekit.Group || o instanceof gamekit.Sprite){
+            out[keys[i]] = gamekit.clone(o);
+            continue;
+        }
+        out[keys[i]] = o;
+    }
+
+    return out;
 };;
 
     //==================================================================================================================
