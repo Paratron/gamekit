@@ -59,3 +59,48 @@ gamekit.clone = function(obj){
 
     return out;
 };
+
+/**
+ * Creates a timer object that also acts as a promise. It will be resolved every time interval has passed.
+ * @param {Number} interval Interval in milliseconds.
+ * @returns {gamekit.Promise}
+ * @constructor
+ */
+
+gamekit.Timer = function(interval){
+    var promise,
+        queueObject,
+        lastTick;
+
+    promise = new gamekit.Promise();
+
+    promise.interval = interval;
+
+    queueObject = {
+        finished: false,
+        update: function(time){
+            if(!lastTick){
+                lastTick = time;
+                return;
+            }
+
+            if(lastTick + promise.interval < time){
+                lastTick = time;
+                promise.resolve();
+            }
+        }
+    };
+
+    promise.disable = function(){
+        queueObject.finished = true;
+    };
+
+    promise.enable = function(){
+        queueObject.finished = false;
+        tweenQueue.push(queueObject);
+    };
+
+    promise.enable();
+
+    return promise;
+};

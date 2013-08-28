@@ -104,6 +104,12 @@
             for (j = entityLen + 1; j--;) {
                 e = l.entities[entityLen - j];
 
+                if(e._destroy){
+                    l.entities.splice(entityLen - j, 1);
+                    entityLen--;
+                    continue;
+                }
+
                 ctx.globalAlpha = e.alpha * l.alpha;
 
                 e.update();

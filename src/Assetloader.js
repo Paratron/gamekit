@@ -125,7 +125,7 @@
 
         for (i = 0; i < assetNames.length; i++) {
             assetNames[i] = assetNames[i].split(':');
-            if(assetNames[key].length !== 2){
+            if(assetNames[i].length !== 2){
                 promise.reject();
                 return promise;
             }
@@ -133,7 +133,7 @@
                 a = new Image();
                 a.onload = callbackFunction;
                 a.onerror = errorFunction;
-                a.assetKey = assetNames[key][0];
+                a.assetKey = assetNames[i][0];
                 gamekit.a[assetNames[i][0]] = a;
                 loadingAssets.push(assetNames[i]);
             }

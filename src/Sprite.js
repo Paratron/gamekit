@@ -31,6 +31,7 @@
         this.stretch = false;
         this.asset = asset;
         this.debugDrawing = false;
+        this._destroy = false;
     };
     gamekit.Sprite.prototype = {
         update: function(){},
@@ -216,5 +217,11 @@
             return function (){
                 return that.tween(properties, duration);
             };
+        },
+        /**
+         * Will cause gamekit to "destroy" this element - means remove it from all layers.
+         */
+        destroy: function(){
+            this._destroy = true;
         }
     };

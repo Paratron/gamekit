@@ -514,7 +514,7 @@
 
         for (i = 0; i < assetNames.length; i++) {
             assetNames[i] = assetNames[i].split(':');
-            if(assetNames[key].length !== 2){
+            if(assetNames[i].length !== 2){
                 promise.reject();
                 return promise;
             }
@@ -522,7 +522,7 @@
                 a = new Image();
                 a.onload = callbackFunction;
                 a.onerror = errorFunction;
-                a.assetKey = assetNames[key][0];
+                a.assetKey = assetNames[i][0];
                 gamekit.a[assetNames[i][0]] = a;
                 loadingAssets.push(assetNames[i]);
             }
@@ -698,6 +698,12 @@
             for (j = entityLen + 1; j--;) {
                 e = l.entities[entityLen - j];
 
+                if(e._destroy){
+                    l.entities.splice(entityLen - j, 1);
+                    entityLen--;
+                    continue;
+                }
+
                 ctx.globalAlpha = e.alpha * l.alpha;
 
                 e.update();
@@ -743,6 +749,7 @@
         this.stretch = false;
         this.asset = asset;
         this.debugDrawing = false;
+        this._destroy = false;
     };
     gamekit.Sprite.prototype = {
         update: function(){},
@@ -928,6 +935,12 @@
             return function (){
                 return that.tween(properties, duration);
             };
+        },
+        /**
+         * Will cause gamekit to "destroy" this element - means remove it from all layers.
+         */
+        destroy: function(){
+            this._destroy = true;
         }
     };;
 
@@ -944,9 +957,11 @@ gamekit.Group = function (){
     this.scaleY = 1;
     this.entities = [];
     this.debugDrawing = false;
+    this._destroy = false;
 };
 gamekit.Group.prototype = {
-    update: function(){},
+    update: function (){
+    },
     /**
      * Returns the boundary dimensions of this group.
      * @returns {*}
@@ -956,7 +971,8 @@ gamekit.Group.prototype = {
             y,
             w,
             h,
-            key,
+            i,
+            entityLen,
             e;
 
         x = Number.POSITIVE_INFINITY;
@@ -973,18 +989,28 @@ gamekit.Group.prototype = {
             };
         }
 
-        for (key in this.entities) {
-            e = this.entities[key];
-            if(e.originX !== undefined){
-                x = Math.min(x, e.x - e.originX);
-                y = Math.min(y, e.y - e.originY);
-                w = Math.max(w, e.x + e.w - e.originX);
-                h = Math.max(h, e.y + e.h - e.originY);
-            } else {
+        entityLen = this.entities.length - 1;
+        for (i = entityLen + 1; i--;) {
+            e = this.entities[entityLen - i];
+            if(e instanceof gamekit.Sprite){
+                if(e.originX !== undefined){
+                    x = Math.min(x, e.x - e.originX);
+                    y = Math.min(y, e.y - e.originY);
+                    w = Math.max(w, e.x + e.w - e.originX);
+                    h = Math.max(h, e.y + e.h - e.originY);
+                } else {
+                    x = Math.min(x, e.x);
+                    y = Math.min(y, e.y);
+                    w = Math.max(w, e.x + e.w);
+                    h = Math.max(h, e.y + e.h);
+                }
+            }
+            if(e instanceof gamekit.Group){
+                e = e.getBoundaries();
                 x = Math.min(x, e.x);
                 y = Math.min(y, e.y);
-                w = Math.max(w, e.x + e.w);
-                h = Math.max(h, e.y + e.h);
+                w = Math.max(w, e.w);
+                h = Math.max(h, e.h);
             }
         }
 
@@ -1007,7 +1033,8 @@ gamekit.Group.prototype = {
     },
     draw: function (ctx){
         var alpha,
-            key,
+            i,
+            entityLen,
             e;
 
         ctx.save();
@@ -1017,8 +1044,15 @@ gamekit.Group.prototype = {
 
         alpha = ctx.globalAlpha;
 
-        for (key in this.entities) {
-            e = this.entities[key];
+        entityLen = this.entities.length - 1;
+        for (i = entityLen + 1; i--;) {
+            e = this.entities[entityLen - i];
+
+            if(e._destroy){
+                l.entities.splice(entityLen - i, 1);
+                entityLen--;
+                continue;
+            }
 
             ctx.globalAlpha = alpha * e.alpha;
 
@@ -1067,6 +1101,12 @@ gamekit.Group.prototype = {
         this.y = y;
 
         return this;
+    },
+    /**
+     * Will cause gamekit to "destroy" this element - means remove it from all layers.
+     */
+    destroy: function (){
+        this._destroy = true;
     }
 };
 
@@ -1548,7 +1588,53 @@ gamekit.clone = function(obj){
     }
 
     return out;
-};;
+};
+
+/**
+ * Creates a timer object that also acts as a promise. It will be resolved every time interval has passed.
+ * @param {Number} interval Interval in milliseconds.
+ * @returns {gamekit.Promise}
+ * @constructor
+ */
+
+gamekit.Timer = function(interval){
+    var promise,
+        queueObject,
+        lastTick;
+
+    promise = new gamekit.Promise();
+
+    promise.interval = interval;
+
+    queueObject = {
+        finished: false,
+        update: function(time){
+            if(!lastTick){
+                lastTick = time;
+                return;
+            }
+
+            if(lastTick + promise.interval < time){
+                lastTick = time;
+                promise.resolve();
+            }
+        }
+    };
+
+    promise.disable = function(){
+        queueObject.finished = true;
+    };
+
+    promise.enable = function(){
+        queueObject.finished = false;
+        tweenQueue.push(queueObject);
+    };
+
+    promise.enable();
+
+    return promise;
+};
+;
 
     //==================================================================================================================
 

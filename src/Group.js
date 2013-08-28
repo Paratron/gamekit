@@ -11,9 +11,11 @@ gamekit.Group = function (){
     this.scaleY = 1;
     this.entities = [];
     this.debugDrawing = false;
+    this._destroy = false;
 };
 gamekit.Group.prototype = {
-    update: function(){},
+    update: function (){
+    },
     /**
      * Returns the boundary dimensions of this group.
      * @returns {*}
@@ -23,7 +25,8 @@ gamekit.Group.prototype = {
             y,
             w,
             h,
-            key,
+            i,
+            entityLen,
             e;
 
         x = Number.POSITIVE_INFINITY;
@@ -40,18 +43,30 @@ gamekit.Group.prototype = {
             };
         }
 
-        for (key in this.entities) {
-            e = this.entities[key];
-            if(e.originX !== undefined){
-                x = Math.min(x, e.x - e.originX);
-                y = Math.min(y, e.y - e.originY);
-                w = Math.max(w, e.x + e.w - e.originX);
-                h = Math.max(h, e.y + e.h - e.originY);
-            } else {
-                x = Math.min(x, e.x);
-                y = Math.min(y, e.y);
-                w = Math.max(w, e.x + e.w);
-                h = Math.max(h, e.y + e.h);
+        entityLen = this.entities.length - 1;
+        for (i = entityLen + 1; i--;) {
+            e = this.entities[entityLen - i];
+            if(e instanceof gamekit.Sprite){
+                if(e.originX !== undefined){
+                    x = Math.min(x, e.x - e.originX);
+                    y = Math.min(y, e.y - e.originY);
+                    w = Math.max(w, e.x + e.w - e.originX);
+                    h = Math.max(h, e.y + e.h - e.originY);
+                } else {
+                    x = Math.min(x, e.x);
+                    y = Math.min(y, e.y);
+                    w = Math.max(w, e.x + e.w);
+                    h = Math.max(h, e.y + e.h);
+                }
+                continue;
+            }
+
+            if(e instanceof gamekit.Group){
+                e = e.getBoundaries();
+                x = Math.min(x, this.x - e.x);
+                y = Math.min(y, this.y - e.y);
+                w = Math.max(w, e.w);
+                h = Math.max(h, e.h);
             }
         }
 
@@ -74,7 +89,8 @@ gamekit.Group.prototype = {
     },
     draw: function (ctx){
         var alpha,
-            key,
+            i,
+            entityLen,
             e;
 
         ctx.save();
@@ -84,8 +100,15 @@ gamekit.Group.prototype = {
 
         alpha = ctx.globalAlpha;
 
-        for (key in this.entities) {
-            e = this.entities[key];
+        entityLen = this.entities.length - 1;
+        for (i = entityLen + 1; i--;) {
+            e = this.entities[entityLen - i];
+
+            if(e._destroy){
+                l.entities.splice(entityLen - i, 1);
+                entityLen--;
+                continue;
+            }
 
             ctx.globalAlpha = alpha * e.alpha;
 
@@ -134,6 +157,12 @@ gamekit.Group.prototype = {
         this.y = y;
 
         return this;
+    },
+    /**
+     * Will cause gamekit to "destroy" this element - means remove it from all layers.
+     */
+    destroy: function (){
+        this._destroy = true;
     }
 };
 
