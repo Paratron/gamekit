@@ -24,6 +24,7 @@ Currently implements:
 * Pointer (mouse, touch) input capturing
 * Pointer area objects
 * Detecting pointer events directly on sprites
+* Text Labels
 
 Docs are coming whenever I feel insane enough for writing them.
 
