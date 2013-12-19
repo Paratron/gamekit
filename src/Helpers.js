@@ -104,3 +104,13 @@ gamekit.Timer = function(interval){
 
     return promise;
 };
+
+/**
+ * Returns a random number between min and max.
+ * @param min
+ * @param max
+ * @returns {*}
+ */
+gamekit.random = function(min, max){
+    return (Math.random() * (max - min)) + min;
+};

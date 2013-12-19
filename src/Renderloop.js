@@ -51,12 +51,14 @@
      * @param {Number} [y=0]
      * @param {Number} [w=gamekit.width()]
      * @param {Number} [h=gamekit.height()]
+     * @return gamekit
      */
     gamekit.clearCanvas = function (x, y, w, h){
         clearX = x || 0;
         clearY = y || 0;
         clearW = w || gamekit.width();
         clearH = h || gamekit.height();
+        return this;
     };
 
     function mainLoop(runTime){
@@ -79,7 +81,7 @@
         gamekit.onBeforeFrame(ctx);
 
         if(clearW || clearH){
-            c.clearRect(clearX, clearY, clearW, clearH);
+            ctx.clearRect(clearX, clearY, clearW, clearH);
         }
 
         //Lets update all tweens, first.
@@ -103,6 +105,10 @@
             entityLen = l.entities.length - 1;
             for (j = entityLen + 1; j--;) {
                 e = l.entities[entityLen - j];
+
+                if(e.alpha < 0){
+                    e.alpha = 0;
+                }
 
                 if(e._destroy){
                     l.entities.splice(entityLen - j, 1);

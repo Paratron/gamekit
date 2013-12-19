@@ -51,6 +51,23 @@
     window.gamekit = gamekit = {};
 
 
+    gamekit.useCanvas = function(elm){
+        if(typeof elm == 'string'){
+            if(elm[0] === '#'){
+                elm = elm.substr(1);
+            }
+            canvas = document.getElementById(elm);
+            ctx = canvas.getContext('2d');
+            return this;
+        }
+
+        canvas = elm;
+        ctx = canvas.getContext('2d');
+
+        return this;
+    };
+
+
     //==================================================================================================================
 
 //@@include('Promises.js')
