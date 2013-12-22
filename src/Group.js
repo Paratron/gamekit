@@ -12,6 +12,7 @@ gamekit.Group = function (){
     this.entities = [];
     this.debugDrawing = false;
     this._destroy = false;
+    this._core = gamekit;
 };
 gamekit.Group.prototype = {
     update: function (){

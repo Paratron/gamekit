@@ -54,6 +54,7 @@ gamekit.Sprite = function (asset){
     this.asset = asset;
     this.debugDrawing = false;
     this._destroy = false;
+    this._core = gamekit;
 };
 gamekit.Sprite.prototype = {
     update: function (){
@@ -169,7 +170,7 @@ gamekit.Sprite.prototype = {
             key,
             matchresult;
 
-        beginTime = lastRunTime;
+        beginTime = this._core.lastRunTime;
         endTime = beginTime + duration;
         promise = new gamekit.Promise(this);
         that = this;
@@ -239,7 +240,7 @@ gamekit.Sprite.prototype = {
             }
         };
 
-        tweenQueue.push(queueObject);
+        this._core.addTween(queueObject);
 
         return promise;
     },

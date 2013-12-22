@@ -10,12 +10,7 @@
 (function (){
     'use strict';
 
-    var gamekit,
-        canvas,
-        ctx;
-
-    canvas = document.getElementsByTagName('canvas')[0];
-    ctx = canvas.getContext('2d');
+    var gamekit;
 
     //RAF polyfill
     (function (){
@@ -50,23 +45,7 @@
     //Initialize the gamekit namespace.
     window.gamekit = gamekit = {};
 
-
-    gamekit.useCanvas = function(elm){
-        if(typeof elm == 'string'){
-            if(elm[0] === '#'){
-                elm = elm.substr(1);
-            }
-            canvas = document.getElementById(elm);
-            ctx = canvas.getContext('2d');
-            return this;
-        }
-
-        canvas = elm;
-        ctx = canvas.getContext('2d');
-
-        return this;
-    };
-
+//@@include('Core.js');
 
     //==================================================================================================================
 
@@ -90,10 +69,6 @@
 
     //==================================================================================================================
 
-//@@include('Renderloop.js');
-
-    //==================================================================================================================
-
 //@@include('Sprite.js');
 
 //@@include('Group.js');
@@ -109,6 +84,9 @@
 //@@include('Helpers.js');
 
     //==================================================================================================================
+
+    //Map a instance of Core against the global gamekit object.
+    gamekit.extend(gamekit, new gamekit.Core());
 
     //The main module is required and automatically loaded.
     //Its set into a setTimout so the dev can overwrite the moduleFolder and assetFolder properties of the gamekit object before its initializing the game.

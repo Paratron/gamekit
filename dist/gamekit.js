@@ -10,12 +10,7 @@
 (function (){
     'use strict';
 
-    var gamekit,
-        canvas,
-        ctx;
-
-    canvas = document.getElementsByTagName('canvas')[0];
-    ctx = canvas.getContext('2d');
+    var gamekit;
 
     //RAF polyfill
     (function (){
@@ -50,8 +45,36 @@
     //Initialize the gamekit namespace.
     window.gamekit = gamekit = {};
 
+/**
+ * Core
+ * ====
+ * The core manages the used canvas and renders the game to it. It calls the update() methods of
+ * all renderable Elements.
+ * @param conf
+ * @constructor
+ */
+gamekit.Core = function (conf){
+    var isRunning,
+        lastRunTime,
+        canvas,
+        ctx,
+        that,
+        onBeforeFrame,
+        onAfterFrame,
+        tweenQueue;
 
-    gamekit.useCanvas = function(elm){
+    //===================================================
+
+    that = this;
+
+    canvas = document.getElementsByTagName('canvas')[0];
+    ctx = canvas.getContext('2d');
+    tweenQueue = [];
+
+    this.layer = [];
+    this.lastRunTime = 0;
+
+    this.useCanvas = function (elm){
         if(typeof elm == 'string'){
             if(elm[0] === '#'){
                 elm = elm.substr(1);
@@ -67,6 +90,140 @@
         return this;
     };
 
+    this.start = function (){
+        isRunning = true;
+        window.requestAnimationFrame(mainLoop);
+    };
+
+    this.stop = function (){
+        isRunning = false;
+    };
+
+    this.width = function(){
+        return canvas.width;
+    };
+
+    this.height = function(){
+        return canvas.height;
+    };
+
+    this.addTween = function(tween){
+        tweenQueue.push(tween);
+    };
+
+    /**
+     * Called, before each rendered frame.
+     * Can be overwritten with custom functions.
+     * @param {CanvasContext2D} ctx
+     */
+    onBeforeFrame = function (){
+    };
+
+    this.setOnBeforeFrame = function (func){
+        onBeforeFrame = func;
+    };
+
+    /**
+     * Called, after each rendered frame.
+     * Can be overwritten with custom functions.
+     * @param {CanvasContext2D} ctx
+     */
+    onAfterFrame = function (){
+    };
+
+    this.setOnAfterFrame = function (func){
+        onAfterFrame = func;
+    };
+
+
+    var clearX,
+        clearY,
+        clearW,
+        clearH;
+    /**
+     * Define a area to be cleared on every frame.
+     * @param {Number} [x=0]
+     * @param {Number} [y=0]
+     * @param {Number} [w=gamekit.width()]
+     * @param {Number} [h=gamekit.height()]
+     * @return Core
+     */
+    this.clearCanvas = function (x, y, w, h){
+        clearX = x || 0;
+        clearY = y || 0;
+        clearW = w || this.width();
+        clearH = h || this.height();
+        return this;
+    };
+
+    function mainLoop(runTime){
+        var i,
+            j,
+            e,
+            l,
+            layer,
+            layerLen,
+            entityLen;
+
+        layer = that.layer;
+
+        if(!isRunning){
+            return;
+        }
+
+        window.requestAnimationFrame(mainLoop);
+
+        //Update the last run time for the tween processing.
+        this.lastRunTime = lastRunTime = runTime;
+
+        onBeforeFrame(ctx);
+
+        if(clearW || clearH){
+            ctx.clearRect(clearX, clearY, clearW, clearH);
+        }
+
+        //Lets update all tweens, first.
+        for (i = tweenQueue.length; i--;) {
+            j = tweenQueue[i];
+            if(j.finished){
+                tweenQueue.splice(i, 1);
+                continue;
+            }
+
+            j.update(runTime);
+        }
+
+        layerLen = layer.length - 1;
+        for (i = layerLen + 1; i--;) {
+            l = layer[layerLen - i];
+            if(!l.visible || !l.alpha){
+                continue;
+            }
+
+            entityLen = l.entities.length - 1;
+            for (j = entityLen + 1; j--;) {
+                e = l.entities[entityLen - j];
+
+                if(e.alpha < 0){
+                    e.alpha = 0;
+                }
+
+                if(e._destroy){
+                    l.entities.splice(entityLen - j, 1);
+                    entityLen--;
+                    continue;
+                }
+
+                ctx.globalAlpha = e.alpha * l.alpha;
+
+                e.update();
+                e.draw(ctx);
+            }
+        }
+
+        onAfterFrame(ctx);
+    }
+};;
 
     //==================================================================================================================
 
@@ -581,6 +738,7 @@
         this.entities = [];
         this.visible = true;
         this.alpha = 1;
+        this._core = gamekit;
     }
 
     GamekitLayer.prototype = {
@@ -589,6 +747,7 @@
          * @param {*} element
          */
         attach: function (element){
+            element._core = this._core;
             this.entities.push(element);
         }
     };
@@ -598,144 +757,15 @@
     /**
      * Adds a new layer on top.
      */
-    gamekit.createLayer = function (){
+    gamekit.Core.prototype.createLayer = function (){
         var l;
         l = new GamekitLayer();
+        l._core = this;
 
-        gamekit.layer.push(l);
+        this.layer.push(l);
 
         return l;
     };;
-
-    //==================================================================================================================
-
-    var gameRunning,
-        lastRunTime;
-
-    /**
-     * This starts the main loop.
-     */
-    gamekit.start = function (){
-        gameRunning = true;
-        window.requestAnimationFrame(mainLoop);
-    };
-
-    /**
-     * This breaks the main loop.
-     */
-    gamekit.stop = function (){
-        gameRunning = false;
-    };
-
-    gamekit.width = function (){
-        return canvas.width;
-    };
-
-    gamekit.height = function (){
-        return canvas.height;
-    };
-
-    /**
-     * Called, before each rendered frame.
-     * Can be overwritten with custom functions.
-     * @param {CanvasContext2D} ctx
-     */
-    gamekit.onBeforeFrame = function (){
-    };
-
-    /**
-     * Called, after each rendered frame.
-     * Can be overwritten with custom functions.
-     * @param {CanvasContext2D} ctx
-     */
-    gamekit.onAfterFrame = function (){
-    };
-
-
-    var clearX,
-        clearY,
-        clearW,
-        clearH;
-    /**
-     * Define a area to be cleared on every frame.
-     * @param {Number} [x=0]
-     * @param {Number} [y=0]
-     * @param {Number} [w=gamekit.width()]
-     * @param {Number} [h=gamekit.height()]
-     * @return gamekit
-     */
-    gamekit.clearCanvas = function (x, y, w, h){
-        clearX = x || 0;
-        clearY = y || 0;
-        clearW = w || gamekit.width();
-        clearH = h || gamekit.height();
-        return this;
-    };
-
-    function mainLoop(runTime){
-        var i,
-            j,
-            e,
-            l,
-            layerLen,
-            entityLen;
-
-        if(!gameRunning){
-            return;
-        }
-
-        window.requestAnimationFrame(mainLoop);
-
-        //Update the last run time for the tween processing.
-        lastRunTime = runTime;
-
-        gamekit.onBeforeFrame(ctx);
-
-        if(clearW || clearH){
-            ctx.clearRect(clearX, clearY, clearW, clearH);
-        }
-
-        //Lets update all tweens, first.
-        for (i = tweenQueue.length; i--;) {
-            j = tweenQueue[i];
-            if(j.finished){
-                tweenQueue.splice(i, 1);
-                continue;
-            }
-
-            j.update(runTime);
-        }
-
-        layerLen = gamekit.layer.length - 1;
-        for (i = layerLen + 1; i--;) {
-            l = gamekit.layer[layerLen - i];
-            if(!l.visible || !l.alpha){
-                continue;
-            }
-
-            entityLen = l.entities.length - 1;
-            for (j = entityLen + 1; j--;) {
-                e = l.entities[entityLen - j];
-
-                if(e.alpha < 0){
-                    e.alpha = 0;
-                }
-
-                if(e._destroy){
-                    l.entities.splice(entityLen - j, 1);
-                    entityLen--;
-                    continue;
-                }
-
-                ctx.globalAlpha = e.alpha * l.alpha;
-
-                e.update();
-                e.draw(ctx);
-            }
-        }
-
-        gamekit.onAfterFrame(ctx);
-    };
 
     //==================================================================================================================
 
@@ -795,6 +825,7 @@ gamekit.Sprite = function (asset){
     this.asset = asset;
     this.debugDrawing = false;
     this._destroy = false;
+    this._core = gamekit;
 };
 gamekit.Sprite.prototype = {
     update: function (){
@@ -910,7 +941,7 @@ gamekit.Sprite.prototype = {
             key,
             matchresult;
 
-        beginTime = lastRunTime;
+        beginTime = this._core.lastRunTime;
         endTime = beginTime + duration;
         promise = new gamekit.Promise(this);
         that = this;
@@ -980,7 +1011,7 @@ gamekit.Sprite.prototype = {
             }
         };
 
-        tweenQueue.push(queueObject);
+        this._core.addTween(queueObject);
 
         return promise;
     },
@@ -1021,6 +1052,7 @@ gamekit.Group = function (){
     this.entities = [];
     this.debugDrawing = false;
     this._destroy = false;
+    this._core = gamekit;
 };
 gamekit.Group.prototype = {
     update: function (){
@@ -1861,9 +1893,32 @@ gamekit.Timer = function(interval){
 gamekit.random = function(min, max){
     return (Math.random() * (max - min)) + min;
 };
-;
+
+/**
+ * Extend a given object with all the properties in passed-in object(s).
+ */
+gamekit.extend = function(obj){
+    var i = 1,
+        src,
+        prop;
+    if(arguments.length === 1){
+        return obj;
+    }
+
+    for(;i < arguments.length; i++){
+        if(src = arguments[i]){
+            for(prop in src){
+                obj[prop] = src[prop];
+            }
+        }
+    }
+    return obj;
+};;
 
     //==================================================================================================================
+
+    //Map a instance of Core against the global gamekit object.
+    gamekit.extend(gamekit, new gamekit.Core());
 
     //The main module is required and automatically loaded.
     //Its set into a setTimout so the dev can overwrite the moduleFolder and assetFolder properties of the gamekit object before its initializing the game.

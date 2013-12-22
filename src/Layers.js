@@ -6,6 +6,7 @@
         this.entities = [];
         this.visible = true;
         this.alpha = 1;
+        this._core = gamekit;
     }
 
     GamekitLayer.prototype = {
@@ -14,6 +15,7 @@
          * @param {*} element
          */
         attach: function (element){
+            element._core = this._core;
             this.entities.push(element);
         }
     };
@@ -23,11 +25,12 @@
     /**
      * Adds a new layer on top.
      */
-    gamekit.createLayer = function (){
+    gamekit.Core.prototype.createLayer = function (){
         var l;
         l = new GamekitLayer();
+        l._core = this;
 
-        gamekit.layer.push(l);
+        this.layer.push(l);
 
         return l;
     };

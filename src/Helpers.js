@@ -114,3 +114,24 @@ gamekit.Timer = function(interval){
 gamekit.random = function(min, max){
     return (Math.random() * (max - min)) + min;
 };
+
+/**
+ * Extend a given object with all the properties in passed-in object(s).
+ */
+gamekit.extend = function(obj){
+    var i = 1,
+        src,
+        prop;
+    if(arguments.length === 1){
+        return obj;
+    }
+
+    for(;i < arguments.length; i++){
+        if(src = arguments[i]){
+            for(prop in src){
+                obj[prop] = src[prop];
+            }
+        }
+    }
+    return obj;
+};
