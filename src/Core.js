@@ -26,7 +26,7 @@ gamekit.Core = function (conf){
 
     this.layer = [];
     this.lastRunTime = 0;
-    
+
     this.useCanvas = function (elm){
         if(typeof elm == 'string'){
             if(elm[0] === '#'){
@@ -62,6 +62,15 @@ gamekit.Core = function (conf){
 
     this.addTween = function(tween){
         tweenQueue.push(tween);
+    };
+
+    /**
+     * The "camera" is simply a offset that is applied to all elements in the root level.
+     * @type {{x: number, y: number}}
+     */
+    this.camera = {
+        x: 0,
+        y: 0
     };
 
     /**
@@ -116,9 +125,13 @@ gamekit.Core = function (conf){
             l,
             layer,
             layerLen,
-            entityLen;
+            entityLen,
+            cameraX,
+            cameraY;
 
         layer = that.layer;
+        cameraX = that.camera.x;
+        cameraY = that.camera.y;
 
         if(!isRunning){
             return;
@@ -127,7 +140,7 @@ gamekit.Core = function (conf){
         window.requestAnimationFrame(mainLoop);
 
         //Update the last run time for the tween processing.
-        this.lastRunTime = lastRunTime = runTime;
+        that.lastRunTime = lastRunTime = runTime;
 
         onBeforeFrame(ctx);
 
@@ -170,7 +183,11 @@ gamekit.Core = function (conf){
                 ctx.globalAlpha = e.alpha * l.alpha;
 
                 e.update();
+                e.x -= cameraX;
+                e.y -= cameraY;
                 e.draw(ctx);
+                e.x += cameraX;
+                e.y += cameraY;
             }
         }
 

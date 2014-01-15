@@ -160,6 +160,8 @@ function inputInitPointers(){
     shadowCtx.globalCompositeOperation = 'copy';
     shadowCtx.fillStyle = '#f00';
 
+    gamekit.pointers = [];
+
     canvas.onmousedown = function (e){
         if(!pointerCaptureDown){
             return;
@@ -218,6 +220,13 @@ function tracePointer(e, eventname){
 
     x = e.clientX - canvas.offsetLeft + window.scrollX;
     y = e.clientY - canvas.offsetTop + window.scrollY;
+
+    if(!gamekit.pointers.length){
+        gamekit.pointers.push({x:0, y:0});
+    }
+
+    gamekit.pointers[0].x = x;
+    gamekit.pointers[0].y = y;
 
     if(!gameRunning){
         return;

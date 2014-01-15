@@ -112,6 +112,15 @@ gamekit.Core = function (conf){
     };
 
     /**
+     * The "camera" is simply a offset that is applied to all elements in the root level.
+     * @type {{x: number, y: number}}
+     */
+    this.camera = {
+        x: 0,
+        y: 0
+    };
+
+    /**
      * Called, before each rendered frame.
      * Can be overwritten with custom functions.
      * @param {CanvasContext2D} ctx
@@ -163,9 +172,13 @@ gamekit.Core = function (conf){
             l,
             layer,
             layerLen,
-            entityLen;
+            entityLen,
+            cameraX,
+            cameraY;
 
         layer = that.layer;
+        cameraX = that.camera.x;
+        cameraY = that.camera.y;
 
         if(!isRunning){
             return;
@@ -174,7 +187,7 @@ gamekit.Core = function (conf){
         window.requestAnimationFrame(mainLoop);
 
         //Update the last run time for the tween processing.
-        this.lastRunTime = lastRunTime = runTime;
+        that.lastRunTime = lastRunTime = runTime;
 
         onBeforeFrame(ctx);
 
@@ -217,7 +230,11 @@ gamekit.Core = function (conf){
                 ctx.globalAlpha = e.alpha * l.alpha;
 
                 e.update();
+                e.x -= cameraX;
+                e.y -= cameraY;
                 e.draw(ctx);
+                e.x += cameraX;
+                e.y += cameraY;
             }
         }
 
@@ -1526,6 +1543,8 @@ function inputInitPointers(){
     shadowCtx.globalCompositeOperation = 'copy';
     shadowCtx.fillStyle = '#f00';
 
+    gamekit.pointers = [];
+
     canvas.onmousedown = function (e){
         if(!pointerCaptureDown){
             return;
@@ -1584,6 +1603,13 @@ function tracePointer(e, eventname){
 
     x = e.clientX - canvas.offsetLeft + window.scrollX;
     y = e.clientY - canvas.offsetTop + window.scrollY;
+
+    if(!gamekit.pointers.length){
+        gamekit.pointers.push({x:0, y:0});
+    }
+
+    gamekit.pointers[0].x = x;
+    gamekit.pointers[0].y = y;
 
     if(!gameRunning){
         return;
