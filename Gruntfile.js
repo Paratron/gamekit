@@ -5,6 +5,7 @@ module.exports = function (grunt){
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-include-replace');
+    grunt.loadNpmTasks('grunt-contrib-jasmine');
 
     grunt.initConfig({
         uglify: {
@@ -57,8 +58,18 @@ module.exports = function (grunt){
                     'dist/' : ['src/gamekit.js']
                 }
             }
+        },
+        jasmine: {
+            gamekit: {
+                options: {
+                    specs: 'test/spec.html',
+                    helpers: 'test/helper.js'
+                },
+                src: 'src/*.js'
+            }
         }
     });
 
     grunt.registerTask('default', ['includereplace', 'uglify']);
+    grunt.registerTask('test', ['jasmine']);
 };
