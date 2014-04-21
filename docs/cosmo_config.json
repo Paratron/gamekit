@@ -1,0 +1,9 @@
+{
+    "title": "Gamekit",
+    "basePath": "/projects/canvas/gamekit-docs/",
+    "homepage": "article/getting-started",
+    "cache": false,
+    "theme": "flatbeat",
+    "defaultLanguage": "en",
+    "disqus": true
+}
