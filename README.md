@@ -26,7 +26,8 @@ Currently implements:
 * Detecting pointer events directly on sprites
 * Text Labels
 
-Docs are coming whenever I feel insane enough for writing them.
+
+I started to write a [documentation for gamekit](http://wearekiss.com/lab/gamekit).
 
 xoxo,
 Chris
