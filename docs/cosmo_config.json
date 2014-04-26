@@ -1,9 +1,15 @@
 {
     "title": "Gamekit",
     "basePath": "/projects/canvas/gamekit-docs/",
-    "homepage": "article/getting-started",
+    "homepage": "article/introduction",
     "cache": false,
     "theme": "flatbeat",
     "defaultLanguage": "en",
-    "disqus": true
+    "disqus": true,
+    "modules": {
+        "PrettifySources": {
+            "skin": "desert",
+            "linenums": false
+        }
+    }
 }
