@@ -126,8 +126,7 @@
         for (i = 0; i < assetNames.length; i++) {
             assetNames[i] = assetNames[i].split(':');
             if(assetNames[i].length !== 2){
-                promise.reject();
-                return promise;
+                assetNames[i].unshift(assetNames[i][0].split('.').shift());
             }
             if(gamekit.a[assetNames[i][0]] === undefined){
                 a = new Image();

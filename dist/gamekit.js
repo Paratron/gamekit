@@ -71,8 +71,11 @@ gamekit.Core = function (conf){
     ctx = canvas.getContext('2d');
     tweenQueue = [];
 
+    this.isRunning = false;
     this.layer = [];
-    this.lastRunTime = 0;
+    this.getLastRuntime = function(){
+        return lastRunTime;
+    };
 
     this.useCanvas = function (elm){
         if(typeof elm == 'string'){
@@ -91,19 +94,27 @@ gamekit.Core = function (conf){
     };
 
     this.start = function (){
-        isRunning = true;
+        this.isRunning = isRunning = true;
         window.requestAnimationFrame(mainLoop);
+        return this;
     };
 
     this.stop = function (){
-        isRunning = false;
+        this.isRunning = isRunning = false;
+        return this;
     };
 
-    this.width = function(){
+    this.width = function(newWidth){
+        if(newWidth){
+            canvas.width = newWidth;
+        }
         return canvas.width;
     };
 
-    this.height = function(){
+    this.height = function(newHeight){
+        if(newHeight){
+            canvas.height = newHeight;
+        }
         return canvas.height;
     };
 
@@ -130,6 +141,7 @@ gamekit.Core = function (conf){
 
     this.setOnBeforeFrame = function (func){
         onBeforeFrame = func;
+        return this;
     };
 
     /**
@@ -142,6 +154,7 @@ gamekit.Core = function (conf){
 
     this.setOnAfterFrame = function (func){
         onAfterFrame = func;
+        return this;
     };
 
 
@@ -163,6 +176,22 @@ gamekit.Core = function (conf){
         clearW = w || this.width();
         clearH = h || this.height();
         return this;
+    };
+
+    /**
+     * Returns a reference to the currently used Canvas DOM element.
+     * @returns {*}
+     */
+    this.getCanvas = function(){
+        return canvas;
+    };
+
+    /**
+     * Returns a reference to the canvas context object.
+     * @returns {CanvasRenderingContext2D}
+     */
+    this.getCTX = function(){
+        return ctx;
     };
 
     function mainLoop(runTime){
@@ -244,257 +273,263 @@ gamekit.Core = function (conf){
 
     //==================================================================================================================
 
-    /**
-     * Gamekits own implementation of commonJS Promises/A.
-     * @param {Object} target Scope of the promise.
-     * @constructor
-     */
-    gamekit.Promise = function (target){
-        this._promiseTarget = target || gamekit;
-    };
-    gamekit.Promise.prototype = {
-        resolve: function (){
-            var result,
-                that;
+/**
+ * Gamekits own implementation of commonJS Promises/A.
+ * @param {Object} target Scope of the promise.
+ * @constructor
+ */
+gamekit.Promise = function (target){
+    this._promiseTarget = target || gamekit;
+};
+gamekit.Promise.prototype = {
+    resolve: function (){
+        var result,
+            that;
 
-            //Has a success function already been attached?
-            if(typeof this._promiseSuccess === 'function'){
-                result = this._promiseSuccess.apply(this._promiseTarget, arguments);
+        //Has a success function already been attached?
+        if(typeof this._promiseSuccess === 'function'){
+            result = this._promiseSuccess.apply(this._promiseTarget, arguments);
 
-                if(result instanceof gamekit.Promise){
-                    that = this;
-                    result.then(function (){
-                        that._promiseChild.resolve.apply(that._promiseChild, arguments);
-                    }, function (){
-                        that._promiseChild.reject.apply(that._promiseChild, arguments);
-                    });
-                } else {
-                    this._promiseChild.resolve.apply(this._promiseChild, result);
-                }
-
-                return;
+            if(result instanceof gamekit.Promise){
+                that = this;
+                result.then(function (){
+                    that._promiseChild.resolve.apply(that._promiseChild, arguments);
+                }, function (){
+                    that._promiseChild.reject.apply(that._promiseChild, arguments);
+                });
+            } else {
+                this._promiseChild.resolve.apply(this._promiseChild, result);
             }
 
-            this._promiseResolved = arguments;
-        },
-        reject: function (){
-            var result,
-                that;
-
-            if(typeof this._promiseError === 'function'){
-                result = this._promiseError.apply(this._promiseTarget, arguments);
-
-                if(result instanceof gamekit.Promise){
-                    that = this;
-                    result.then(function (){
-                        that._promiseChild.resolve.apply(that._promiseChild, arguments);
-                    }, function (){
-                        that._promiseChild.reject.apply(that._promiseChild, arguments);
-                    });
-                } else {
-                    this._promiseChild.reject.apply(this._promiseChild, result);
-                }
-
-                return;
-            }
-            this._promiseRejected = arguments;
-        },
-        /**
-         * Promise chaining method.
-         * @param {Function} [success]
-         * @param {Function} [error]
-         * @returns {*}
-         */
-        then: function (success, error){
-            this._promiseSuccess = success;
-            this._promiseError = error;
-            this._promiseChild = new gamekit.Promise(this._promiseTarget);
-
-            //Has promise already been fulfilled or rejected?
-            if(this._promiseResolved !== undefined){
-                this._promiseChild.resolve.apply(this._promiseChild, this._promiseResolved);
-            }
-
-            if(this._promiseRejected !== undefined){
-                this._promiseChild.reject.apply(this._promiseChild, this._promiseRejected);
-            }
-
-            return this._promiseChild;
+            return;
         }
-    };
 
+        this._promiseResolved = arguments;
+    },
+    reject: function (){
+        var result,
+            that;
+
+        if(typeof this._promiseError === 'function'){
+            result = this._promiseError.apply(this._promiseTarget, arguments);
+
+            if(result instanceof gamekit.Promise){
+                that = this;
+                result.then(function (){
+                    that._promiseChild.resolve.apply(that._promiseChild, arguments);
+                }, function (){
+                    that._promiseChild.reject.apply(that._promiseChild, arguments);
+                });
+            } else {
+                this._promiseChild.reject.apply(this._promiseChild, result);
+            }
+
+            return;
+        }
+        this._promiseRejected = arguments;
+    },
+    progress: function (){
+        if(typeof this._promiseProgress === 'function'){
+            this._promiseProgress.apply(this._promiseTarget, arguments);
+        }
+    },
     /**
-     * This method accepts n promise elements and will resolve its own promise, when all received promises have been fulfilled.
-     * If one of the promises fail, the methods promise will fail, too.
-     * @param {...gamekit.Promise} promises Align as many promises as you wish.
-     * @returns {gamekit.Promise}
+     * Promise chaining method.
+     * @param {Function} [success]
+     * @param {Function} [error]
+     * @returns {*}
      */
-    gamekit.all = function (promises){
-        var promise,
-            responses,
-            i;
+    then: function (success, error, progress){
+        this._promiseSuccess = success;
+        this._promiseError = error;
+        this._promiseProgress = progress;
+        this._promiseChild = new gamekit.Promise(this._promiseTarget);
 
+        //Has promise already been fulfilled or rejected?
+        if(this._promiseResolved !== undefined){
+            this._promiseChild.resolve.apply(this._promiseChild, this._promiseResolved);
+        }
+
+        if(this._promiseRejected !== undefined){
+            this._promiseChild.reject.apply(this._promiseChild, this._promiseRejected);
+        }
+
+        return this._promiseChild;
+    }
+};
+
+/**
+ * This method accepts n promise elements and will resolve its own promise, when all received promises have been fulfilled.
+ * If one of the promises fail, the methods promise will fail, too.
+ * @param {...gamekit.Promise} promises Align as many promises as you wish.
+ * @returns {gamekit.Promise}
+ */
+gamekit.all = gamekit.Promise.all = function (){
+    var promise,
+        responses,
+        i;
+
+    promise = new gamekit.Promise();
+    responses = 0;
+
+    function resolve(){
+        responses++;
+        if(responses === arguments.length){
+            promise.resolve();
+        }
+    }
+
+    for (i = 0; i < arguments.length; i++) {
+        arguments[i].then(resolve, promise.reject);
+    }
+
+    return promise;
+};
+
+/**
+ * This will return a function, that will execute the functions passed to gamekit.chain() in the order they have
+ * been passed.
+ * If the chained functions return promises, the execution of the next function in the chain will wait until the
+ * promise is resolved.
+ *
+ * The returned chained function will return a promise upon execution.
+ * @param {...Function} functions
+ * @returns {Function} Executes the chain upon call. Returns a promise.
+ */
+gamekit.chain = gamekit.Promise.chain = function (){
+    var chain;
+
+    chain = arguments;
+
+    return function (){
+        var index,
+            promise;
+
+        index = 0;
         promise = new gamekit.Promise();
-        responses = 0;
 
-        function resolve(){
-            responses++;
-            if(responses === arguments.length){
+        function callNext(){
+            var result;
+
+            if(index >= chain.length){
                 promise.resolve();
+                return;
             }
+
+            result = chain[index]();
+
+            index++;
+
+            if(result instanceof gamekit.Promise){
+                result.then(function (){
+                    callNext();
+                });
+                return;
+            }
+            callNext();
         }
 
-        for (i = 0; i < arguments.length; i++) {
-            arguments[i].then(resolve, promise.reject);
-        }
+        callNext();
 
         return promise;
     };
+};
 
-    /**
-     * This will return a function, that will execute the functions passed to gamekit.chain() in the order they have
-     * been passed.
-     * If the chained functions return promises, the execution of the next function in the chain will wait until the
-     * promise is resolved.
-     *
-     * The returned chained function will return a promise upon execution.
-     * @param {...Function} functions
-     * @returns {Function} Executes the chain upon call. Returns a promise.
-     */
-    gamekit.chain = function (functions){
-        var chain;
+/**
+ * Works much alike gamekit.chain(), but all given functions will be executed right away.
+ * If the paralleled functions return promises, the returned paralleled function will wait to resolve its promise,
+ * until the last promise of any given function has been resolved.
+ *
+ * The returned paralleled function will return a promise upon execution.
+ * @param {...Function} functions
+ * @returns {Function} Executes the paralleled functions upon call. Returns a promise.
+ */
+gamekit.parallel = gamekit.Promise.parallel = function (){
+    var chain;
 
-        chain = arguments;
+    chain = arguments;
 
-        return function (){
-            var index,
-                promise;
+    return function (){
+        var index,
+            toResolve,
+            promise;
 
-            index = 0;
-            promise = new gamekit.Promise();
+        index = 0;
+        promise = new gamekit.Promise();
+        toResolve = chain.length;
 
-            function callNext(){
-                var result;
+        function callFinished(){
+            toResolve--;
 
-                if(index >= chain.length){
-                    promise.resolve();
-                    return;
-                }
-
-                result = chain[index]();
-
-                index++;
-
-                if(result instanceof gamekit.Promise){
-                    result.then(function (){
-                        callNext();
-                    });
-                    return;
-                }
-                callNext();
+            if(toResolve === 0){
+                promise.resolve();
+                return;
             }
-
-            callNext();
-
-            return promise;
-        };
-    };
-
-    /**
-     * Works much alike gamekit.chain(), but all given functions will be executed right away.
-     * If the paralleled functions return promises, the returned paralleled function will wait to resolve its promise,
-     * until the last promise of any given function has been resolved.
-     *
-     * The returned paralleled function will return a promise upon execution.
-     * @param {...Function} functions
-     * @returns {Function} Executes the paralleled functions upon call. Returns a promise.
-     */
-    gamekit.parallel = function (functions){
-        var chain;
-
-        chain = arguments;
-
-        return function (){
-            var index,
-                toResolve,
-                promise;
-
-            index = 0;
-            promise = new gamekit.Promise();
-            toResolve = chain.length;
-
-            function callFinished(){
-                toResolve--;
-
-                if(toResolve === 0){
-                    promise.resolve();
-                    return;
-                }
-            }
-
-            function callNext(){
-                var result;
-
-                if(index >= chain.length){
-                    return;
-                }
-
-                result = chain[index]();
-
-                index++;
-
-                if(result instanceof gamekit.Promise){
-                    result.then(callFinished);
-                } else {
-                    callFinished();
-                }
-
-                callNext();
-            }
-
-            callNext();
-
-            return promise;
         }
-    };
 
-    /**
-     * Will return a function that upon call returns a promise that will be resolved after the given amount of milliseconds.
-     * Made to just pause promise chains with an eye on animation.
-     * @param {Number} duration
-     * @returns {Function}
-     */
-    gamekit.wait = function (duration){
-        return function (){
-            var promise,
-                queueObject,
-                beginTime,
-                endTime;
+        function callNext(){
+            var result;
 
-            promise = new gamekit.Promise();
-            beginTime = lastRunTime;
-            endTime = beginTime + duration;
+            if(index >= chain.length){
+                return;
+            }
 
-            queueObject = {
-                finished: false,
-                update: function (currentTime){
-                    if(beginTime === undefined){
-                        beginTime = currentTime;
-                        endTime = beginTime + duration;
-                    }
+            result = chain[index]();
 
-                    if(currentTime >= endTime){
-                        queueObject.finished = true;
-                        promise.resolve();
-                    }
+            index++;
+
+            if(result instanceof gamekit.Promise){
+                result.then(callFinished);
+            } else {
+                callFinished();
+            }
+
+            callNext();
+        }
+
+        callNext();
+
+        return promise;
+    }
+};
+
+/**
+ * Will return a function that upon call returns a promise that will be resolved after the given amount of milliseconds.
+ * Made to just pause promise chains with an eye on animation.
+ * @param {Number} duration
+ * @returns {Function}
+ */
+gamekit.wait = gamekit.Promise.wait = function (duration){
+    return function (){
+        var promise,
+            queueObject,
+            beginTime,
+            endTime;
+
+        promise = new gamekit.Promise();
+        beginTime = lastRunTime;
+        endTime = beginTime + duration;
+
+        queueObject = {
+            finished: false,
+            update: function (currentTime){
+                if(beginTime === undefined){
+                    beginTime = currentTime;
+                    endTime = beginTime + duration;
                 }
-            };
 
-            tweenQueue.push(queueObject);
-
-            return promise;
+                if(currentTime >= endTime){
+                    queueObject.finished = true;
+                    promise.resolve();
+                }
+            }
         };
+
+        tweenQueue.push(queueObject);
+
+        return promise;
     };
+};
 
     //==================================================================================================================
 
@@ -519,7 +554,14 @@ gamekit.Core = function (conf){
      * @param {Function} code The initialization function
      */
     gamekit.defineModule = function (name, code){
-        gamekit.m[name] = code();
+        gamekit.m[name] = (typeof code === 'function') ? code() : code;
+
+        //For module definitions that return a promise.
+        if(gamekit.m[name] instanceof gamekit.Promise){
+            gamekit.m[name].then(function(pChild, result){
+                gamekit.m[name] = result;
+            });
+        }
     };
 
     /**
@@ -706,8 +748,7 @@ gamekit.Core = function (conf){
         for (i = 0; i < assetNames.length; i++) {
             assetNames[i] = assetNames[i].split(':');
             if(assetNames[i].length !== 2){
-                promise.reject();
-                return promise;
+                assetNames[i].unshift(assetNames[i][0].split('.').shift());
             }
             if(gamekit.a[assetNames[i][0]] === undefined){
                 a = new Image();
@@ -738,7 +779,7 @@ gamekit.Core = function (conf){
      * @constructor
      */
     gamekit.SpriteMap = function (imageObj, tileW, tileH){
-        //TODO: implement spritemap
+        //TODO: implement spritemaph
     };;
 
     gamekit.SpriteAtlas = function (imageObj, jsonConfig){
@@ -862,7 +903,15 @@ gamekit.Sprite.prototype = {
         ctx.translate(this.x, this.y);
 
         if(this.speed){
-            if(!this._directionCache || !this._directionCache[0] === this.speed || !this._directionCache[1] === this.direction){
+            while (this.direction > 360) {
+                this.direction -= 360;
+            }
+
+            while (this.direction < 0) {
+                this.direction += 360;
+            }
+
+            if(!this._directionCache || this._directionCache[0] !== this.speed || this._directionCache[1] !== this.direction){
                 this._directionCache = [
                     this.speed,
                     this.direction,
@@ -877,6 +926,10 @@ gamekit.Sprite.prototype = {
         if(this.rotation){
             while (this.rotation > 360) {
                 this.rotation -= 360;
+            }
+
+            while (this.rotation < 0) {
+                this.rotation += 360;
             }
 
             ctx.rotate(this.rotation * Math.PI / 180);
@@ -941,7 +994,7 @@ gamekit.Sprite.prototype = {
         return this;
     },
     /**
-     * Morph one or more numeric properties of the object across a specified amount of time.
+     * Morph one or more numeric properties of the object during a specified amount of time.
      * @param {Object} properties Target values for one or more numeric properties of the object.
      * @param {Number} duration Duration of the morphing process in milliseconds.
      * @returns {gamekit.Promise}
@@ -958,7 +1011,7 @@ gamekit.Sprite.prototype = {
             key,
             matchresult;
 
-        beginTime = this._core.lastRunTime;
+        beginTime = this._core.getLastRuntime();
         endTime = beginTime + duration;
         promise = new gamekit.Promise(this);
         that = this;
@@ -1020,6 +1073,8 @@ gamekit.Sprite.prototype = {
                 for (key in startProperties) {
                     that[key] = startProperties[key] + (diffs[key] * t);
                 }
+
+                promise.progress(t);
 
                 if(t === 1){
                     queueObject.finished = true;
@@ -1384,6 +1439,7 @@ gamekit.Label.prototype.destroy = gamekit.Sprite.prototype.destroy;;
 var keyboardInputInitialized,
     pointerInputInitialized,
     keyboardInputListeners,
+    keyboardPressed,
     keymap,
     shadowCtx;
 
@@ -1498,10 +1554,12 @@ function inputInitKeyboard(){
     }
 
     keyboardInputListeners = {};
+    keyboardPressed = {};
 
-    window.onkeydown = function (e){
+    function keyListener(e, upDown){
         var keyname,
-            key;
+            key,
+            was;
 
         keyname = keymap[e.keyCode];
 
@@ -1509,14 +1567,33 @@ function inputInitKeyboard(){
             return;
         }
 
+        was = keyboardPressed[keyname];
+        keyboardPressed[keyname] = upDown;
+
         if(keyboardInputListeners[keyname] === undefined){
             return;
         }
 
         for (key in keyboardInputListeners[keyname]) {
-            keyboardInputListeners[keyname][key].resolve();
+            if(upDown){
+                if(!was){
+                    keyboardInputListeners[keyname][key].resolve();
+                }
+            } else {
+                if(was){
+                    keyboardInputListeners[keyname][key].reject();
+                }
+            }
         }
+    }
+
+    window.onkeydown = function (e){
+        keyListener(e, true);
     };
+
+    window.onkeyup = function (e){
+        keyListener(e, false);
+    }
 
     keyboardInputInitialized = true;
 }
@@ -1527,8 +1604,11 @@ var pointerCaptureDown,
     pointerCaptureUp,
     pointerCaptureMove;
 
-function inputInitPointers(){
-    var shadowCanvas;
+function inputInitPointers(core){
+    var shadowCanvas,
+        canvas;
+
+    canvas = core.getCanvas();
 
     if(pointerInputInitialized){
         return;
@@ -1549,42 +1629,42 @@ function inputInitPointers(){
         if(!pointerCaptureDown){
             return;
         }
-        tracePointer(e, 'pointerdown');
+        tracePointer(core, e, 'pointerdown');
     };
 
     canvas.onmouseup = function (e){
         if(!pointerCaptureUp){
             return;
         }
-        tracePointer(e, 'pointerup');
+        tracePointer(core, e, 'pointerup');
     };
 
     canvas.onmousemove = function (e){
         if(!pointerCaptureMove){
             return;
         }
-        tracePointer(e, 'pointermove');
+        tracePointer(core, e, 'pointermove');
     };
 
     canvas.ontouchstart = function (e){
         if(!pointerCaptureDown){
             return;
         }
-        tracePointer(e, 'pointerdown');
+        tracePointer(core, e, 'pointerdown');
     };
 
     canvas.ontouchend = function (e){
         if(!pointerCaptureUp){
             return;
         }
-        tracePointer(e, 'pointerdown');
+        tracePointer(core, e, 'pointerdown');
     };
 
-    canvas.ontouchmove = function(e){
+    canvas.ontouchmove = function (e){
         if(!pointerCaptureMove){
             return;
         }
-        tracePointer(e, 'pointermove');
+        tracePointer(core, e, 'pointermove');
     };
 }
 
@@ -1592,26 +1672,29 @@ function inputInitPointers(){
  * Notice: Disabled PointerAreas are not triggered!
  * @param e
  */
-function tracePointer(e, eventname){
+function tracePointer(core, e, eventname){
     var x,
         y,
         layerLen,
         l,
         entityLen,
         j,
-        i;
+        i,
+        canvas;
+
+    canvas = core.getCanvas();
 
     x = e.clientX - canvas.offsetLeft + window.scrollX;
     y = e.clientY - canvas.offsetTop + window.scrollY;
 
     if(!gamekit.pointers.length){
-        gamekit.pointers.push({x:0, y:0});
+        gamekit.pointers.push({x: 0, y: 0});
     }
 
     gamekit.pointers[0].x = x;
     gamekit.pointers[0].y = y;
 
-    if(!gameRunning){
+    if(!core.isRunning){
         return;
     }
 
@@ -1775,7 +1858,7 @@ gamekit.Group.prototype.shadowDraw = gamekit.PointerArea.prototype.shadowDraw;
  * @param {Boolean} [onBoundingBox=false] Set to true to capture touches within the sprites bounding box, instead within the pixel-perfect asset content. Default = false
  */
 gamekit.Sprite.prototype.pointerEnable = function (onBoundingBox){
-    inputInitPointers();
+    inputInitPointers(this._core);
     this._captureBoundingBox = onBoundingBox;
     this._attachedEvents = {};
     this.disabled = false;
@@ -1783,22 +1866,20 @@ gamekit.Sprite.prototype.pointerEnable = function (onBoundingBox){
 };
 
 
-gamekit.input = {
-    onKey: function (keyname){
-        var promise;
+gamekit.onKey = function (keyname){
+    var promise;
 
-        inputInitKeyboard();
+    inputInitKeyboard();
 
-        promise = new gamekit.Promise();
+    promise = new gamekit.Promise();
 
-        if(keyboardInputListeners[keyname] === undefined){
-            keyboardInputListeners[keyname] = [];
-        }
-
-        keyboardInputListeners[keyname].push(promise);
-
-        return promise;
+    if(keyboardInputListeners[keyname] === undefined){
+        keyboardInputListeners[keyname] = [];
     }
+
+    keyboardInputListeners[keyname].push(promise);
+
+    return promise;
 };;
 
     //==================================================================================================================
@@ -1872,10 +1953,14 @@ gamekit.clone = function(obj){
  * @constructor
  */
 
-gamekit.Timer = function(interval){
+gamekit.Timer = function(interval, core){
     var promise,
         queueObject,
         lastTick;
+
+    if(!core){
+        core = gamekit;
+    }
 
     promise = new gamekit.Promise();
 
@@ -1902,7 +1987,7 @@ gamekit.Timer = function(interval){
 
     promise.enable = function(){
         queueObject.finished = false;
-        tweenQueue.push(queueObject);
+        core.addTween(queueObject);
     };
 
     promise.enable();
@@ -1911,13 +1996,30 @@ gamekit.Timer = function(interval){
 };
 
 /**
+ * The random seed is calculated freshly on every load of the framework.
+ */
+gamekit.randomSeed = (function (){
+    return Math.floor(Math.random() * (99999)) + 1;
+})();
+
+/**
+ * Implementation of a seeded random number generator.
+ * Set gamekit.randomSeed to any integer to have a custom seed.
+ * @returns {number}
+ */
+gamekit.random = function(){
+    var x = Math.abs(Math.sin(gamekit.randomSeed++)) * 10000;
+    return x - ~~x;
+};
+
+/**
  * Returns a random number between min and max.
  * @param min
  * @param max
  * @returns {*}
  */
-gamekit.random = function(min, max){
-    return (Math.random() * (max - min)) + min;
+gamekit.randomInRange = function(min, max){
+    return (gamekit.random() * (max - min)) + min;
 };
 
 /**

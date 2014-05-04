@@ -6,5 +6,5 @@
      * @constructor
      */
     gamekit.SpriteMap = function (imageObj, tileW, tileH){
-        //TODO: implement spritemap
+        //TODO: implement spritemaph
     };

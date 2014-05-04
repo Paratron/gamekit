@@ -19,7 +19,14 @@
      * @param {Function} code The initialization function
      */
     gamekit.defineModule = function (name, code){
-        gamekit.m[name] = code();
+        gamekit.m[name] = (typeof code === 'function') ? code() : code;
+
+        //For module definitions that return a promise.
+        if(gamekit.m[name] instanceof gamekit.Promise){
+            gamekit.m[name].then(function(pChild, result){
+                gamekit.m[name] = result;
+            });
+        }
     };
 
     /**

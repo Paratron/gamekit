@@ -1,6 +1,7 @@
 var keyboardInputInitialized,
     pointerInputInitialized,
     keyboardInputListeners,
+    keyboardPressed,
     keymap,
     shadowCtx;
 
@@ -115,10 +116,12 @@ function inputInitKeyboard(){
     }
 
     keyboardInputListeners = {};
+    keyboardPressed = {};
 
-    window.onkeydown = function (e){
+    function keyListener(e, upDown){
         var keyname,
-            key;
+            key,
+            was;
 
         keyname = keymap[e.keyCode];
 
@@ -126,14 +129,33 @@ function inputInitKeyboard(){
             return;
         }
 
+        was = keyboardPressed[keyname];
+        keyboardPressed[keyname] = upDown;
+
         if(keyboardInputListeners[keyname] === undefined){
             return;
         }
 
         for (key in keyboardInputListeners[keyname]) {
-            keyboardInputListeners[keyname][key].resolve();
+            if(upDown){
+                if(!was){
+                    keyboardInputListeners[keyname][key].resolve();
+                }
+            } else {
+                if(was){
+                    keyboardInputListeners[keyname][key].reject();
+                }
+            }
         }
+    }
+
+    window.onkeydown = function (e){
+        keyListener(e, true);
     };
+
+    window.onkeyup = function (e){
+        keyListener(e, false);
+    }
 
     keyboardInputInitialized = true;
 }
@@ -144,8 +166,11 @@ var pointerCaptureDown,
     pointerCaptureUp,
     pointerCaptureMove;
 
-function inputInitPointers(){
-    var shadowCanvas;
+function inputInitPointers(core){
+    var shadowCanvas,
+        canvas;
+
+    canvas = core.getCanvas();
 
     if(pointerInputInitialized){
         return;
@@ -166,42 +191,42 @@ function inputInitPointers(){
         if(!pointerCaptureDown){
             return;
         }
-        tracePointer(e, 'pointerdown');
+        tracePointer(core, e, 'pointerdown');
     };
 
     canvas.onmouseup = function (e){
         if(!pointerCaptureUp){
             return;
         }
-        tracePointer(e, 'pointerup');
+        tracePointer(core, e, 'pointerup');
     };
 
     canvas.onmousemove = function (e){
         if(!pointerCaptureMove){
             return;
         }
-        tracePointer(e, 'pointermove');
+        tracePointer(core, e, 'pointermove');
     };
 
     canvas.ontouchstart = function (e){
         if(!pointerCaptureDown){
             return;
         }
-        tracePointer(e, 'pointerdown');
+        tracePointer(core, e, 'pointerdown');
     };
 
     canvas.ontouchend = function (e){
         if(!pointerCaptureUp){
             return;
         }
-        tracePointer(e, 'pointerdown');
+        tracePointer(core, e, 'pointerdown');
     };
 
-    canvas.ontouchmove = function(e){
+    canvas.ontouchmove = function (e){
         if(!pointerCaptureMove){
             return;
         }
-        tracePointer(e, 'pointermove');
+        tracePointer(core, e, 'pointermove');
     };
 }
 
@@ -209,26 +234,29 @@ function inputInitPointers(){
  * Notice: Disabled PointerAreas are not triggered!
  * @param e
  */
-function tracePointer(e, eventname){
+function tracePointer(core, e, eventname){
     var x,
         y,
         layerLen,
         l,
         entityLen,
         j,
-        i;
+        i,
+        canvas;
+
+    canvas = core.getCanvas();
 
     x = e.clientX - canvas.offsetLeft + window.scrollX;
     y = e.clientY - canvas.offsetTop + window.scrollY;
 
     if(!gamekit.pointers.length){
-        gamekit.pointers.push({x:0, y:0});
+        gamekit.pointers.push({x: 0, y: 0});
     }
 
     gamekit.pointers[0].x = x;
     gamekit.pointers[0].y = y;
 
-    if(!gameRunning){
+    if(!core.isRunning){
         return;
     }
 
@@ -392,7 +420,7 @@ gamekit.Group.prototype.shadowDraw = gamekit.PointerArea.prototype.shadowDraw;
  * @param {Boolean} [onBoundingBox=false] Set to true to capture touches within the sprites bounding box, instead within the pixel-perfect asset content. Default = false
  */
 gamekit.Sprite.prototype.pointerEnable = function (onBoundingBox){
-    inputInitPointers();
+    inputInitPointers(this._core);
     this._captureBoundingBox = onBoundingBox;
     this._attachedEvents = {};
     this.disabled = false;
@@ -400,20 +428,18 @@ gamekit.Sprite.prototype.pointerEnable = function (onBoundingBox){
 };
 
 
-gamekit.input = {
-    onKey: function (keyname){
-        var promise;
+gamekit.onKey = function (keyname){
+    var promise;
 
-        inputInitKeyboard();
+    inputInitKeyboard();
 
-        promise = new gamekit.Promise();
+    promise = new gamekit.Promise();
 
-        if(keyboardInputListeners[keyname] === undefined){
-            keyboardInputListeners[keyname] = [];
-        }
-
-        keyboardInputListeners[keyname].push(promise);
-
-        return promise;
+    if(keyboardInputListeners[keyname] === undefined){
+        keyboardInputListeners[keyname] = [];
     }
+
+    keyboardInputListeners[keyname].push(promise);
+
+    return promise;
 };

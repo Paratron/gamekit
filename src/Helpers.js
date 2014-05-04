@@ -67,10 +67,14 @@ gamekit.clone = function(obj){
  * @constructor
  */
 
-gamekit.Timer = function(interval){
+gamekit.Timer = function(interval, core){
     var promise,
         queueObject,
         lastTick;
+
+    if(!core){
+        core = gamekit;
+    }
 
     promise = new gamekit.Promise();
 
@@ -97,7 +101,7 @@ gamekit.Timer = function(interval){
 
     promise.enable = function(){
         queueObject.finished = false;
-        tweenQueue.push(queueObject);
+        core.addTween(queueObject);
     };
 
     promise.enable();
@@ -106,13 +110,30 @@ gamekit.Timer = function(interval){
 };
 
 /**
+ * The random seed is calculated freshly on every load of the framework.
+ */
+gamekit.randomSeed = (function (){
+    return Math.floor(Math.random() * (99999)) + 1;
+})();
+
+/**
+ * Implementation of a seeded random number generator.
+ * Set gamekit.randomSeed to any integer to have a custom seed.
+ * @returns {number}
+ */
+gamekit.random = function(){
+    var x = Math.abs(Math.sin(gamekit.randomSeed++)) * 10000;
+    return x - ~~x;
+};
+
+/**
  * Returns a random number between min and max.
  * @param min
  * @param max
  * @returns {*}
  */
-gamekit.random = function(min, max){
-    return (Math.random() * (max - min)) + min;
+gamekit.randomInRange = function(min, max){
+    return (gamekit.random() * (max - min)) + min;
 };
 
 /**

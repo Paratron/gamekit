@@ -24,8 +24,11 @@ gamekit.Core = function (conf){
     ctx = canvas.getContext('2d');
     tweenQueue = [];
 
+    this.isRunning = false;
     this.layer = [];
-    this.lastRunTime = 0;
+    this.getLastRuntime = function(){
+        return lastRunTime;
+    };
 
     this.useCanvas = function (elm){
         if(typeof elm == 'string'){
@@ -44,19 +47,27 @@ gamekit.Core = function (conf){
     };
 
     this.start = function (){
-        isRunning = true;
+        this.isRunning = isRunning = true;
         window.requestAnimationFrame(mainLoop);
+        return this;
     };
 
     this.stop = function (){
-        isRunning = false;
+        this.isRunning = isRunning = false;
+        return this;
     };
 
-    this.width = function(){
+    this.width = function(newWidth){
+        if(newWidth){
+            canvas.width = newWidth;
+        }
         return canvas.width;
     };
 
-    this.height = function(){
+    this.height = function(newHeight){
+        if(newHeight){
+            canvas.height = newHeight;
+        }
         return canvas.height;
     };
 
@@ -83,6 +94,7 @@ gamekit.Core = function (conf){
 
     this.setOnBeforeFrame = function (func){
         onBeforeFrame = func;
+        return this;
     };
 
     /**
@@ -95,6 +107,7 @@ gamekit.Core = function (conf){
 
     this.setOnAfterFrame = function (func){
         onAfterFrame = func;
+        return this;
     };
 
 
@@ -116,6 +129,22 @@ gamekit.Core = function (conf){
         clearW = w || this.width();
         clearH = h || this.height();
         return this;
+    };
+
+    /**
+     * Returns a reference to the currently used Canvas DOM element.
+     * @returns {*}
+     */
+    this.getCanvas = function(){
+        return canvas;
+    };
+
+    /**
+     * Returns a reference to the canvas context object.
+     * @returns {CanvasRenderingContext2D}
+     */
+    this.getCTX = function(){
+        return ctx;
     };
 
     function mainLoop(runTime){

@@ -74,7 +74,15 @@ gamekit.Sprite.prototype = {
         ctx.translate(this.x, this.y);
 
         if(this.speed){
-            if(!this._directionCache || !this._directionCache[0] === this.speed || !this._directionCache[1] === this.direction){
+            while (this.direction > 360) {
+                this.direction -= 360;
+            }
+
+            while (this.direction < 0) {
+                this.direction += 360;
+            }
+
+            if(!this._directionCache || this._directionCache[0] !== this.speed || this._directionCache[1] !== this.direction){
                 this._directionCache = [
                     this.speed,
                     this.direction,
@@ -89,6 +97,10 @@ gamekit.Sprite.prototype = {
         if(this.rotation){
             while (this.rotation > 360) {
                 this.rotation -= 360;
+            }
+
+            while (this.rotation < 0) {
+                this.rotation += 360;
             }
 
             ctx.rotate(this.rotation * Math.PI / 180);
@@ -153,7 +165,7 @@ gamekit.Sprite.prototype = {
         return this;
     },
     /**
-     * Morph one or more numeric properties of the object across a specified amount of time.
+     * Morph one or more numeric properties of the object during a specified amount of time.
      * @param {Object} properties Target values for one or more numeric properties of the object.
      * @param {Number} duration Duration of the morphing process in milliseconds.
      * @returns {gamekit.Promise}
@@ -170,7 +182,7 @@ gamekit.Sprite.prototype = {
             key,
             matchresult;
 
-        beginTime = this._core.lastRunTime;
+        beginTime = this._core.getLastRuntime();
         endTime = beginTime + duration;
         promise = new gamekit.Promise(this);
         that = this;
@@ -232,6 +244,8 @@ gamekit.Sprite.prototype = {
                 for (key in startProperties) {
                     that[key] = startProperties[key] + (diffs[key] * t);
                 }
+
+                promise.progress(t);
 
                 if(t === 1){
                     queueObject.finished = true;
