@@ -90,7 +90,11 @@
             //Determine if its a resource to be processed.
             result = this.src.match(smapRegex);
             if(result){
-                gamekit.a[this.assetKey] = new gamekit.SpriteMap(gamekit.a[this.assetKey], parseInt(result[1], 10), parseInt(result[2], 10));
+                gamekit.a[this.assetKey] = new gamekit.SpriteMap({
+                    image: gamekit.a[this.assetKey],
+                    tileW: parseInt(result[1], 10),
+                    tileH: parseInt(result[2], 10)
+                });
                 loadedAssets++;
                 if(loadedAssets === loadingAssets.length){
                     promise.resolve();

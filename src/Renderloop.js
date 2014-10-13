@@ -61,6 +61,8 @@
         return this;
     };
 
+    gamekit.fps = 0;
+
     function mainLoop(runTime){
         var i,
             j,
@@ -71,6 +73,11 @@
 
         if(!gameRunning){
             return;
+        }
+
+        gamekit.fps++;
+        if(runTime % 1000 === 0){
+            gamekit.fps = 0;
         }
 
         window.requestAnimationFrame(mainLoop);

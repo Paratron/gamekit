@@ -25,9 +25,10 @@ Currently implements:
 * Pointer area objects
 * Detecting pointer events directly on sprites
 * Text Labels
+* Spritemaps
 
 
-I started to write a [documentation for gamekit](http://wearekiss.com/lab/gamekit).
+Documentation (WIP) under [http://wearekiss.com/gamekit](http://wearekiss.com/gamekit).
 
 xoxo,
 Chris

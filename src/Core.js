@@ -14,7 +14,10 @@ gamekit.Core = function (conf){
         that,
         onBeforeFrame,
         onAfterFrame,
-        tweenQueue;
+        tweenQueue,
+        fps,
+        fpsBuffer,
+        lastFPSReset;
 
     //===================================================
 
@@ -23,10 +26,13 @@ gamekit.Core = function (conf){
     canvas = document.getElementsByTagName('canvas')[0];
     ctx = canvas.getContext('2d');
     tweenQueue = [];
+    fps = 0;
+    fpsBuffer = 0;
+    lastFPSReset = 0;
 
     this.isRunning = false;
     this.layer = [];
-    this.getLastRuntime = function(){
+    this.getLastRuntime = function (){
         return lastRunTime;
     };
 
@@ -57,21 +63,21 @@ gamekit.Core = function (conf){
         return this;
     };
 
-    this.width = function(newWidth){
+    this.width = function (newWidth){
         if(newWidth){
             canvas.width = newWidth;
         }
         return canvas.width;
     };
 
-    this.height = function(newHeight){
+    this.height = function (newHeight){
         if(newHeight){
             canvas.height = newHeight;
         }
         return canvas.height;
     };
 
-    this.addTween = function(tween){
+    this.addTween = function (tween){
         tweenQueue.push(tween);
     };
 
@@ -135,7 +141,7 @@ gamekit.Core = function (conf){
      * Returns a reference to the currently used Canvas DOM element.
      * @returns {*}
      */
-    this.getCanvas = function(){
+    this.getCanvas = function (){
         return canvas;
     };
 
@@ -143,27 +149,32 @@ gamekit.Core = function (conf){
      * Returns a reference to the canvas context object.
      * @returns {CanvasRenderingContext2D}
      */
-    this.getCTX = function(){
+    this.getCTX = function (){
         return ctx;
+    };
+
+    this.getFPS = function(){
+        return fps;
     };
 
     function mainLoop(runTime){
         var i,
             j,
-            e,
             l,
             layer,
-            layerLen,
-            entityLen,
-            cameraX,
-            cameraY;
+            layerLen;
 
         layer = that.layer;
-        cameraX = that.camera.x;
-        cameraY = that.camera.y;
 
         if(!isRunning){
             return;
+        }
+
+        fpsBuffer++;
+        if(lastFPSReset < runTime - 1000){
+            fps = fpsBuffer;
+            fpsBuffer = 0;
+            lastFPSReset = runTime;
         }
 
         window.requestAnimationFrame(mainLoop);
@@ -195,29 +206,7 @@ gamekit.Core = function (conf){
                 continue;
             }
 
-            entityLen = l.entities.length - 1;
-            for (j = entityLen + 1; j--;) {
-                e = l.entities[entityLen - j];
-
-                if(e.alpha < 0){
-                    e.alpha = 0;
-                }
-
-                if(e._destroy){
-                    l.entities.splice(entityLen - j, 1);
-                    entityLen--;
-                    continue;
-                }
-
-                ctx.globalAlpha = e.alpha * l.alpha;
-
-                e.update();
-                e.x -= cameraX;
-                e.y -= cameraY;
-                e.draw(ctx);
-                e.x += cameraX;
-                e.y += cameraY;
-            }
+            l.draw(ctx);
         }
 
         onAfterFrame(ctx);

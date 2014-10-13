@@ -61,7 +61,10 @@ gamekit.Core = function (conf){
         that,
         onBeforeFrame,
         onAfterFrame,
-        tweenQueue;
+        tweenQueue,
+        fps,
+        fpsBuffer,
+        lastFPSReset;
 
     //===================================================
 
@@ -70,10 +73,13 @@ gamekit.Core = function (conf){
     canvas = document.getElementsByTagName('canvas')[0];
     ctx = canvas.getContext('2d');
     tweenQueue = [];
+    fps = 0;
+    fpsBuffer = 0;
+    lastFPSReset = 0;
 
     this.isRunning = false;
     this.layer = [];
-    this.getLastRuntime = function(){
+    this.getLastRuntime = function (){
         return lastRunTime;
     };
 
@@ -104,21 +110,21 @@ gamekit.Core = function (conf){
         return this;
     };
 
-    this.width = function(newWidth){
+    this.width = function (newWidth){
         if(newWidth){
             canvas.width = newWidth;
         }
         return canvas.width;
     };
 
-    this.height = function(newHeight){
+    this.height = function (newHeight){
         if(newHeight){
             canvas.height = newHeight;
         }
         return canvas.height;
     };
 
-    this.addTween = function(tween){
+    this.addTween = function (tween){
         tweenQueue.push(tween);
     };
 
@@ -182,7 +188,7 @@ gamekit.Core = function (conf){
      * Returns a reference to the currently used Canvas DOM element.
      * @returns {*}
      */
-    this.getCanvas = function(){
+    this.getCanvas = function (){
         return canvas;
     };
 
@@ -190,27 +196,32 @@ gamekit.Core = function (conf){
      * Returns a reference to the canvas context object.
      * @returns {CanvasRenderingContext2D}
      */
-    this.getCTX = function(){
+    this.getCTX = function (){
         return ctx;
+    };
+
+    this.getFPS = function(){
+        return fps;
     };
 
     function mainLoop(runTime){
         var i,
             j,
-            e,
             l,
             layer,
-            layerLen,
-            entityLen,
-            cameraX,
-            cameraY;
+            layerLen;
 
         layer = that.layer;
-        cameraX = that.camera.x;
-        cameraY = that.camera.y;
 
         if(!isRunning){
             return;
+        }
+
+        fpsBuffer++;
+        if(lastFPSReset < runTime - 1000){
+            fps = fpsBuffer;
+            fpsBuffer = 0;
+            lastFPSReset = runTime;
         }
 
         window.requestAnimationFrame(mainLoop);
@@ -242,29 +253,7 @@ gamekit.Core = function (conf){
                 continue;
             }
 
-            entityLen = l.entities.length - 1;
-            for (j = entityLen + 1; j--;) {
-                e = l.entities[entityLen - j];
-
-                if(e.alpha < 0){
-                    e.alpha = 0;
-                }
-
-                if(e._destroy){
-                    l.entities.splice(entityLen - j, 1);
-                    entityLen--;
-                    continue;
-                }
-
-                ctx.globalAlpha = e.alpha * l.alpha;
-
-                e.update();
-                e.x -= cameraX;
-                e.y -= cameraY;
-                e.draw(ctx);
-                e.x += cameraX;
-                e.y += cameraY;
-            }
+            l.draw(ctx);
         }
 
         onAfterFrame(ctx);
@@ -712,7 +701,11 @@ gamekit.wait = gamekit.Promise.wait = function (duration){
             //Determine if its a resource to be processed.
             result = this.src.match(smapRegex);
             if(result){
-                gamekit.a[this.assetKey] = new gamekit.SpriteMap(gamekit.a[this.assetKey], parseInt(result[1], 10), parseInt(result[2], 10));
+                gamekit.a[this.assetKey] = new gamekit.SpriteMap({
+                    image: gamekit.a[this.assetKey],
+                    tileW: parseInt(result[1], 10),
+                    tileH: parseInt(result[2], 10)
+                });
                 loadedAssets++;
                 if(loadedAssets === loadingAssets.length){
                     promise.resolve();
@@ -771,16 +764,87 @@ gamekit.wait = gamekit.Promise.wait = function (duration){
         return promise;
     };;
 
+/**
+ * Automatically splits an image into a sprite map and makes tiles accessible via index.
+ * The Spritemap behaves like an array, so you can access the separate sprites by calling
+ *
+ * mySpritemap[index]
+ *
+ * For example when using a sprite object:
+ *
+ * var car = new Sprite(mySpritemap[12]);
+ *
+ * @param {object} params
+ * @param {Image} params.image Image object containing the spritemap
+ * @param {int} params.tileW Width of the tiles
+ * @param {int} params.tileH Height of the tiles
+ * @param {int} [params.offsX=0] Offset (blank space) in the upper left corner of the spritemap
+ * @param {int} [params.offsY=0] Offset (blank space) in the upper left corner of the spritemap
+ * @param {int} [params.spacingX=0] Horizontal spacing between tiles
+ * @param {int} [params.spacingY=0] Vertical spacing between tiles
+ * @constructor
+ */
+gamekit.SpriteMap = function (params){
+    var obj = [];
+
+    params.offsX = params.offsX || 0;
+    params.offsY = params.offsY || 0;
+    params.spacingX = params.spacingX || 0;
+    params.spacingY = params.spacingY || 0;
+
+    obj._image = params.image;
+    obj._tileW = params.tileW;
+    obj._tileH = params.tileH;
+    obj._animations = {};
+    obj._tilesOnXAxis = Math.floor((params.image.width - params.offsX) / (params.tileW + params.spacingX));
+    obj._tilesOnYAxis = Math.floor((params.image.height - params.offsY) / (params.tileH + params.spacingY));
+
+    for (var y = 0; y < obj._tilesOnYAxis; y++) {
+        for (var x = 0; x < obj._tilesOnXAxis; x++) {
+            obj.push({
+                image: obj._image,
+                x: x * params.tileW + params.offsX + (x * params.spacingX),
+                y: y * params.tileH + params.offsY + (y * params.spacingY),
+                w: params.tileW,
+                h: params.tileH
+            });
+        }
+    }
+
+    obj._isSpritemap = true;
+
+    gamekit.extend(obj, gamekit.SpriteMap.prototype);
+
+    return obj;
+};
+
+gamekit.SpriteMap.prototype = {
     /**
-     * Automatically splits an image into a sprite map and makes tiles accessible via index.
-     * @param {Image} imageObj
-     * @param {Number} tileW
-     * @param {Number} tileH
-     * @constructor
+     * Creates a new animation preset and stores it on the spritemap.
+     * @param {object} params
+     * @param {string} params.key
+     * @param {int} params.from
+     * @param {int} params.to
+     * @param {int} params.fps
+     * @param {bool} params.loop
      */
-    gamekit.SpriteMap = function (imageObj, tileW, tileH){
-        //TODO: implement spritemaph
-    };;
+    createAnimation: function(params){
+        var obj = {
+            key: params.key,
+            loop: params.loop === true,
+            fps: params.fps || gamekit.SpriteMap.defaultFPS,
+            frames: []
+        };
+
+        for(var i = params.from; i <= params.to; i++){
+            obj.frames.push(i);
+        }
+
+        this._animations[params.key] = obj;
+    }
+};
+
+gamekit.SpriteMap.defaultFPS = 25;;
 
     gamekit.SpriteAtlas = function (imageObj, jsonConfig){
         //TODO: implement spriteatlas
@@ -788,42 +852,80 @@ gamekit.wait = gamekit.Promise.wait = function (duration){
 
     //==================================================================================================================
 
-    /**
-     * The gamekit layers are used to render on multiple levels.
-     * @type {Array}
-     */
-    function GamekitLayer(){
-        this.entities = [];
-        this.visible = true;
-        this.alpha = 1;
-        this._core = gamekit;
-    }
+/**
+ * The gamekit layers are used to render on multiple levels.
+ * @type {Array}
+ */
+function GamekitLayer(core){
+    this.entities = [];
+    this.visible = true;
+    this.alpha = 1;
+    this._core = core;
+}
 
-    GamekitLayer.prototype = {
-        /**
-         * Adds a new renderable entity (Sprite, Group) to the layer.
-         * @param {*} element
-         */
-        attach: function (element){
-            element._core = this._core;
-            this.entities.push(element);
+GamekitLayer.prototype = {
+    /**
+     * Adds a new renderable entity (Sprite, Group) to the layer.
+     * @param {*} element
+     */
+    attach: function (element){
+        element._core = this._core;
+        this.entities.push(element);
+    },
+    /**
+     * Draws the contents of this layer.
+     * @param ctx
+     */
+    draw: function (ctx){
+        var entityLen,
+            i, e,
+            cameraX,
+            cameraY;
+
+        cameraX = this._core.camera.x;
+        cameraY = this._core.camera.y;
+
+
+        entityLen = this.entities.length - 1;
+        for (i = entityLen + 1; i--;) {
+            e = this.entities[entityLen - i];
+
+            if(e._destroy){
+                this.entities.splice(entityLen - i, 1);
+                entityLen--;
+                continue;
+            }
+
+            if(e.alpha < 0){
+                e.alpha = 0;
+                continue;
+            }
+
+            ctx.globalAlpha = e.alpha * this.alpha;
+
+            e.update();
+            e.x -= cameraX;
+            e.y -= cameraY;
+            e.draw(ctx);
+            e.x += cameraX;
+            e.y += cameraY;
         }
-    };
+    }
+};
 
-    gamekit.layer = [new GamekitLayer()];
+gamekit.layer = [new GamekitLayer(gamekit)];
 
-    /**
-     * Adds a new layer on top.
-     */
-    gamekit.Core.prototype.createLayer = function (){
-        var l;
-        l = new GamekitLayer();
-        l._core = this;
+/**
+ * Adds a new layer on top.
+ */
+gamekit.Core.prototype.createLayer = function (){
+    var l;
+    l = new GamekitLayer(this);
 
-        this.layer.push(l);
+    this.layer.push(l);
 
-        return l;
-    };;
+    return l;
+};;
 
     //==================================================================================================================
 
@@ -842,7 +944,7 @@ gamekit.renderDebugObjects = false;
  */
 tweenQueue = [];
 
-function getDirections(speed, directionAngle){
+function vectorComponents(speed, directionAngle){
     directionAngle -= 90;
 
     while (directionAngle < 0) {
@@ -855,10 +957,23 @@ function getDirections(speed, directionAngle){
 
 
     var speedx, speedy;
-    speedx = Math.floor(speed * Math.cos(directionAngle * Math.PI / 180));
-    speedy = Math.floor(speed * Math.sin(directionAngle * Math.PI / 180));
+    speedx = speed * Math.cos(directionAngle * Math.PI / 180);
+    speedy = speed * Math.sin(directionAngle * Math.PI / 180);
 
     return [speedx, speedy];
+}
+
+function vectorPolar(speedX, speedY){
+    var speed,
+        angle;
+
+    //Converting Radians to degrees by multiplying with (180/Math.PI)
+    angle = Math.atan2(speedX, speedY) * 57.29577951308232;
+
+    //Last number is Math.cos(90);
+    speed = Math.sqrt((speedX * speedX) + (speedY * speedY));
+
+    return [speed, angle];
 }
 
 /**
@@ -868,22 +983,53 @@ function getDirections(speed, directionAngle){
 gamekit.Sprite = function (asset){
     this.x = 0;
     this.y = 0;
-    this.w = asset.width;
-    this.h = asset.height;
     this.originX = 0;
     this.originY = 0;
     this.rotation = 0;
     this.direction = 0;
     this._directionCache = null;
     this.speed = 0;
+    this.friction = 0;
     this.scaleX = 1;
     this.scaleY = 1;
     this.alpha = 1;
     this.stretch = false;
-    this.asset = asset;
     this.debugDrawing = false;
     this._destroy = false;
     this._core = gamekit;
+
+    if(asset instanceof Image){
+        this.asset = asset;
+        this.w = asset.width;
+        this.h = asset.height;
+        this._assetDimensions = {
+            x: 0,
+            y: 0,
+            w: asset.width,
+            h: asset.height
+        };
+        return;
+    }
+
+    if(asset._isSpritemap){
+        this.asset = asset._image;
+        this._spritemap = asset;
+        this._spritemapIndex = 0;
+        this.w = this._spritemap[0].w;
+        this.h = this._spritemap[0].h;
+        return;
+    }
+
+    //Asset is dynamic - means its a SpriteMap- or SpriteAtlas element.
+    this.asset = asset.image;
+    this.w = asset.w;
+    this.h = asset.h;
+    this._assetDimensions = {
+        x: asset.x,
+        y: asset.y,
+        w: asset.w,
+        h: asset.h
+    };
 };
 gamekit.Sprite.prototype = {
     update: function (){
@@ -892,15 +1038,34 @@ gamekit.Sprite.prototype = {
         var w,
             h,
             oX,
-            oY;
+            oY,
+            aX,
+            aY,
+            aW,
+            aH;
 
         oX = this.originX;
         oY = this.originY;
         w = this.w;
         h = this.h;
+        if(this._spritemap){
+            aX = this._spritemap[this._spritemapIndex].x;
+            aY = this._spritemap[this._spritemapIndex].y;
+            aW = this._spritemap[this._spritemapIndex].w;
+            aH = this._spritemap[this._spritemapIndex].h;
+        } else {
+            aX = this._assetDimensions.x;
+            aY = this._assetDimensions.y;
+            aW = this._assetDimensions.w;
+            aH = this._assetDimensions.h;
+        }
 
         ctx.save();
         ctx.translate(this.x, this.y);
+        if(this.alpha < 0){
+            this.alpha = 0;
+        }
+        ctx.globalAlpha = this.alpha;
 
         if(this.speed){
             while (this.direction > 360) {
@@ -915,12 +1080,24 @@ gamekit.Sprite.prototype = {
                 this._directionCache = [
                     this.speed,
                     this.direction,
-                    getDirections(this.speed, this.direction)
+                    vectorComponents(this.speed, this.direction)
                 ]
             }
 
             this.x += this._directionCache[2][0];
             this.y += this._directionCache[2][1];
+
+            if(this.speed > 0){
+                this.speed -= this.friction;
+                if(this.speed < 0){
+                    this.speed = 0;
+                }
+            } else {
+                this.speed += this.friction;
+                if(this.speed > 0){
+                    this.speed = 0;
+                }
+            }
         }
 
         if(this.rotation){
@@ -937,7 +1114,7 @@ gamekit.Sprite.prototype = {
 
         ctx.scale(this.scaleX, this.scaleY);
 
-        if(!this.stretch && (w !== this.asset.width || h !== this.asset.height)){
+        if(!this.stretch && (w !== aW || h !== aH)){
             if(!this.pattern){
                 this.pattern = ctx.createPattern(this.asset, 'repeat');
             }
@@ -947,7 +1124,7 @@ gamekit.Sprite.prototype = {
             return;
         }
 
-        ctx.drawImage(this.asset, -oX, -oY, w, h);
+        ctx.drawImage(this.asset, aX, aY, aW, aH, -oX, -oY, w, h);
 
         if(this.debugDrawing){
             ctx.beginPath();
@@ -992,6 +1169,91 @@ gamekit.Sprite.prototype = {
         this.originY = y;
 
         return this;
+    },
+    /**
+     * If a spritemap has been assigned to this sprite object, you can map animations defined
+     * on the spritemap on this spriteobject.
+     *
+     * If the animation happens to be not looped, this method will return a promise that is fulfilled
+     * when the animation is finished.
+     * @param key
+     */
+    setAnimation: function(key){
+        if(!this._spritemap){
+            throw new Error('No spritemap set');
+        }
+
+        if(!this._spritemap._animations[key]){
+            throw new Error('Unknown animation');
+        }
+
+        var core,
+            anim,
+            promise,
+            queueObject,
+            that,
+            animPointer,
+            waitTime,
+            lastTime;
+
+        this._animation = anim = {
+            key: key,
+            loop: this._spritemap._animations[key].loop,
+            fps: this._spritemap._animations[key].fps,
+            frames: this._spritemap._animations[key].frames
+        };
+        that = this;
+
+        if(!anim.loop){
+            promise = new gamekit.Promise();
+        }
+
+        core = this._core;
+        lastTime = core.getLastRuntime();
+        if(core.getFPS()){
+            waitTime = (1000 / core.getFPS()) * (core.getFPS() / anim.fps);
+        } else {
+            waitTime = (1000 / 60) * (60 / anim.fps);
+        }
+        this._spritemapIndex = anim.frames[0];
+        animPointer = 1;
+
+        queueObject = {
+            finished: false,
+            update: function(currentTime){
+                //Has the animation been switched?
+                if(that._animation.key !== key){
+                    queueObject.finished = true;
+                    return;
+                }
+
+                if(currentTime <= lastTime + waitTime){
+                    return;
+                }
+
+                lastTime = currentTime;
+                if(core.getFPS()){
+                    waitTime = Math.min((1000 / core.getFPS()) * (core.getFPS() / anim.fps), 1000);
+                }
+
+                animPointer++;
+                if(animPointer >= anim.frames.length){
+                    if(!anim.loop){
+                        queueObject.finished = true;
+                        that._animation = null;
+                        promise.resolve();
+                        return;
+                    }
+                    animPointer = 0;
+                }
+
+                that._spritemapIndex = anim.frames[animPointer];
+            }
+        };
+
+        core.addTween(queueObject);
+
+        return promise;
     },
     /**
      * Morph one or more numeric properties of the object during a specified amount of time.
@@ -1107,6 +1369,70 @@ gamekit.Sprite.prototype = {
      */
     destroy: function (){
         this._destroy = true;
+    },
+    /**
+     * Apply a force to manipulate the current direction and speed.
+     * @param {Number} directionAngle Direction of where the force should point
+     * @param {Number} force Force (in pixel per frame)
+     * @param {Number} [max] If you pass a max value, the Sprites' speed won't be increased if it already has the max speed in the given direction.
+     */
+    applyForce: function (directionAngle, force, max){
+        var comp1,
+            comp2,
+            step,
+            result;
+
+        if(!this.speed){
+            this.direction = directionAngle;
+            this.speed = force;
+            return;
+        }
+
+        comp1 = vectorComponents(force, directionAngle);
+
+        if(!this._directionCache){
+            step = [0, 0];
+        } else {
+            step = this._directionCache[2];
+        }
+
+        if(max !== undefined){
+            comp2 = vectorComponents(max, directionAngle);
+
+            if(comp2[0] < 0){
+                if(step[0] > comp2[0]){
+                    comp1[0] = Math.max(comp2[0], step[0] + comp1[0]);
+                } else {
+                    comp1[0] = 0;
+                }
+            } else {
+                if(step[0] < comp2[0]){
+                    comp1[0] = Math.min(comp2[0], step[0] + comp1[0]);
+                } else {
+                    comp1[0] = 0;
+                }
+            }
+
+            if(comp2[1] < 0){
+                if(step[1] > comp2[0]){
+                    comp1[1] = Math.max(comp2[1], step[1] + comp1[1]);
+                } else {
+                    comp1[1] = 0;
+                }
+            } else {
+                if(step[1] < comp2[0]){
+                    comp1[1] = Math.min(comp2[1], step[1] + comp1[1]);
+                } else {
+                    comp1[1] = 0;
+                }
+            }
+        }
+
+        result = vectorPolar(step[0] + comp1[0], step[1] + comp1[1]);
+
+        this.speed = result[0];
+        this.direction = result[1];
+        this._directionCache = [result[0], result[1], [step[0] + comp1[0], step[1] + comp1[1]]];
     }
 };;
 
