@@ -72,11 +72,11 @@ gamekit.Promise.prototype = {
 
         //Has promise already been fulfilled or rejected?
         if(this._promiseResolved !== undefined){
-            this._promiseChild.resolve.apply(this._promiseChild, this._promiseResolved);
+			this.resolve.apply(this, this._promiseResolved);
         }
 
         if(this._promiseRejected !== undefined){
-            this._promiseChild.reject.apply(this._promiseChild, this._promiseRejected);
+			this.reject.apply(this, this._promiseRejected);
         }
 
         return this._promiseChild;

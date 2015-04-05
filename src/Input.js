@@ -242,6 +242,7 @@ function tracePointer(core, e, eventname){
         entityLen,
         j,
         i,
+		el,
         canvas;
 
     canvas = core.getCanvas();
@@ -269,11 +270,11 @@ function tracePointer(core, e, eventname){
 
         entityLen = l.entities.length - 1;
         for (j = entityLen + 1; j--;) {
-            e = l.entities[entityLen - j];
-            if(e.disabled){
+            el = l.entities[entityLen - j];
+            if(el.disabled || el.shadowDraw === undefined){
                 continue;
             }
-            e.shadowDraw(x, y, eventname);
+            el.shadowDraw(x, y, eventname);
         }
     }
 }
@@ -296,7 +297,7 @@ function pointerHitTest(x, y){
  * @constructor
  */
 gamekit.PointerArea = function (){
-    inputInitPointers();
+    inputInitPointers(gamekit);
     this.x = 0;
     this.y = 0;
     this.w = gamekit.width();
@@ -331,6 +332,7 @@ gamekit.PointerArea.prototype = {
 
         ctx.restore();
     },
+	update: function(){},
     shadowDraw: function (x, y, eventname){
         if(this instanceof gamekit.Sprite && this.disabled === undefined){
             return;

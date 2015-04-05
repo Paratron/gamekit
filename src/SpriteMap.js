@@ -55,26 +55,25 @@ gamekit.SpriteMap = function (params){
 gamekit.SpriteMap.prototype = {
     /**
      * Creates a new animation preset and stores it on the spritemap.
-     * @param {object} params
-     * @param {string} params.key
-     * @param {int} params.from
-     * @param {int} params.to
-     * @param {int} params.fps
-     * @param {bool} params.loop
+     * @param key
+     * @param fromIndex Beginning index, or array of frames.
+     * @param toIndex End index or 0 if you want to use an array of frames.
+     * @param loop
+     * @param fps
      */
-    createAnimation: function(params){
+    createAnimation: function(key, fromIndex, toIndex, loop, fps){
         var obj = {
-            key: params.key,
-            loop: params.loop === true,
-            fps: params.fps || gamekit.SpriteMap.defaultFPS,
-            frames: []
+            key: key,
+            loop: loop === true,
+            fps: fps || gamekit.SpriteMap.defaultFPS,
+            frames: !toIndex ? fromIndex : []
         };
 
-        for(var i = params.from; i <= params.to; i++){
+        for(var i = fromIndex; i <= toIndex; i++){
             obj.frames.push(i);
         }
 
-        this._animations[params.key] = obj;
+        this._animations[key] = obj;
     }
 };
 

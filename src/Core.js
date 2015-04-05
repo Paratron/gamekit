@@ -23,8 +23,15 @@ gamekit.Core = function (conf){
 
     that = this;
 
-    canvas = document.getElementsByTagName('canvas')[0];
-    ctx = canvas.getContext('2d');
+    canvas = document.getElementsByTagName('canvas');
+	if(canvas.length){
+		canvas = canvas[0];
+		ctx = canvas.getContext('2d');
+	} else {
+		canvas = null;
+		ctx = null;
+	}
+
     tweenQueue = [];
     fps = 0;
     fpsBuffer = 0;

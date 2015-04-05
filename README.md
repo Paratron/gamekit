@@ -26,9 +26,14 @@ Currently implements:
 * Detecting pointer events directly on sprites
 * Text Labels
 * Spritemaps
+* Sprite Atlases
+* TileGrid (Wanna do a tilebased game?)
+* TileMap (Able to "understand" Tileds Map Format (JSON))
 
 
 Documentation (WIP) under [http://wearekiss.com/gamekit](http://wearekiss.com/gamekit).
+
+The Tilebased elements need to be considered in beta stadium right now - I did not polish or document them so far.
 
 xoxo,
 Chris

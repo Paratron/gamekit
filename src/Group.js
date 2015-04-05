@@ -96,7 +96,7 @@ gamekit.Group.prototype = {
 
         ctx.save();
         ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation * Math.PI / 360);
+        ctx.rotate(this.rotation * Math.PI / 180);
         ctx.scale(this.scaleX, this.scaleY);
 
         alpha = ctx.globalAlpha;
