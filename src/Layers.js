@@ -26,7 +26,7 @@ GamekitLayer.prototype = {
 		}
 	},
 	clear: function(){
-		this.entities = [];
+		this.entities.length = 0;
 	},
 	/**
 	 * Draws the contents of this layer.
@@ -60,11 +60,10 @@ GamekitLayer.prototype = {
 			ctx.globalAlpha = e.alpha * this.alpha;
 
 			e.update();
-			e.x -= cameraX;
-			e.y -= cameraY;
+			ctx.save();
+			ctx.translate(-cameraX, -cameraY);
 			e.draw(ctx);
-			e.x += cameraX;
-			e.y += cameraY;
+			ctx.restore();
 		}
 	}
 };

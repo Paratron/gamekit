@@ -1004,7 +1004,7 @@ GamekitLayer.prototype = {
 		}
 	},
 	clear: function(){
-		this.entities = [];
+		this.entities.length = 0;
 	},
 	/**
 	 * Draws the contents of this layer.
@@ -1038,11 +1038,10 @@ GamekitLayer.prototype = {
 			ctx.globalAlpha = e.alpha * this.alpha;
 
 			e.update();
-			e.x -= cameraX;
-			e.y -= cameraY;
+			ctx.save();
+			ctx.translate(-cameraX, -cameraY);
 			e.draw(ctx);
-			e.x += cameraX;
-			e.y += cameraY;
+			ctx.restore();
 		}
 	}
 };
@@ -1940,6 +1939,9 @@ gamekit.TileGrid = function (params){
 	obj.scaleY = 1;
 	obj.gridSize = 0;
 	obj.gridColor = '#000';
+	obj._tilemap = params.tilemap;
+	obj._core = gamekit;
+	obj._slice = {x: 0, y: 0, w: 0, h: 0};
 	this._destroy = false;
 
 	obj._isTilegrid = true;
@@ -2025,7 +2027,11 @@ gamekit.TileGrid.prototype = {
 	},
 	draw: function (ctx){
 		var x, //x position of rendered tile
-			y, //y position of rendered tile
+			y,
+			xBase,
+			yBase, //y position of rendered tile
+			w,
+			h,
 			tW, //width of the tiles in pixels
 			tH, //height of the tiles in pixels
 			oX, //offset of the layer
@@ -2066,9 +2072,20 @@ gamekit.TileGrid.prototype = {
 
 		ctx.scale(this.scaleX, this.scaleY);
 
+		xBase = (-(this.x + (this._tilemap ? this._tilemap.x : 0)) + this._core.camera.x);
+		xBase = Math.floor(xBase / tW);
+		yBase = (-(this.y + (this._tilemap ? this._tilemap.y : 0)) + this._core.camera.y);
+		yBase = Math.floor(yBase / tH);
+		w = Math.ceil(this._core.width() / tW) + 1;
+		h = Math.ceil(this._core.height() / tH) + 1;
 
-		for (x = 0; x < this.length; x++) {
-			for (y = 0; y < this[x].length; y++) {
+		this._slice.x = xBase;
+		this._slice.y = yBase;
+		this._slice.w = w;
+		this._slice.h = h;
+
+		for (x = xBase; x < xBase + w; x++) {
+			for (y = yBase; y < yBase + h; y++) {
 				idx = this[x][y];
 				if(idx === null){
 					continue;
@@ -2162,6 +2179,7 @@ gamekit.TileMap.prototype = {
 		var layer;
 
 		layer = new gamekit.TileGrid({
+			tilemap: this,
 			spritemaps: this._spritemaps,
 			x:      x || 0,
 			y:      y || 0,

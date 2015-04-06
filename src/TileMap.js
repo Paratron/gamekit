@@ -53,6 +53,7 @@ gamekit.TileMap.prototype = {
 		var layer;
 
 		layer = new gamekit.TileGrid({
+			tilemap: this,
 			spritemaps: this._spritemaps,
 			x:      x || 0,
 			y:      y || 0,
