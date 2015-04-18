@@ -155,7 +155,7 @@ function inputInitKeyboard(){
 
     window.onkeyup = function (e){
         keyListener(e, false);
-    }
+    };
 
     keyboardInputInitialized = true;
 }
@@ -284,10 +284,7 @@ function pointerHitTest(x, y){
 
     pData = shadowCtx.getImageData(x, y, 1, 1).data;
 
-    if(pData[0] || pData[1] || pData[2] || pData[3]){
-        return true;
-    }
-    return false;
+    return !!(pData[0] || pData[1] || pData[2] || pData[3]);
 }
 
 
@@ -327,7 +324,8 @@ gamekit.PointerArea.prototype = {
         ctx.scale(this.scaleX, this.scaleY);
 
         ctx.beginPath();
-        ctx.strokeStyle = '#fff';
+        ctx.strokeStyle = '#a584ac';
+		ctx.rect(0, 0, this.w, this.h);
         ctx.stroke();
 
         ctx.restore();
@@ -444,4 +442,21 @@ gamekit.onKey = function (keyname){
     keyboardInputListeners[keyname].push(promise);
 
     return promise;
+};
+
+/**
+ * Passively check if the given key is currently pressed.
+ * @param keyname
+ * @returns {boolean}
+ */
+gamekit.isPressed = function(keyname){
+	if(!keyboardPressed){
+		return false;
+	}
+
+	return !!keyboardPressed[keyname];
+};
+
+gamekit.initializeKeyboard = function(){
+	inputInitKeyboard();
 };

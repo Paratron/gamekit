@@ -125,8 +125,8 @@
 
                 ctx.globalAlpha = e.alpha * l.alpha;
 
-                e.update();
-                e.draw(ctx);
+                e.update.call(e);
+                e.draw.call(e, ctx);
             }
         }
 

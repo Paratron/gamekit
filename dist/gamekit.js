@@ -616,6 +616,177 @@ gamekit.wait = gamekit.Promise.wait = function (duration){
 
     //==================================================================================================================
 
+/**
+ * Limits the given function and only allows calls to it after the defined waiting time has passed.
+ * All calls in between are being dropped.
+ * @param {Function} func The function to be limited
+ * @param {Number} timeSpacing The amount of time to wait between calls in milliseconds.
+ * @return {Function} The limited function.
+ */
+gamekit.limitCalls = function(func, timeSpacing){
+    var lastCall;
+
+    lastCall = 0;
+
+    return function(){
+        if(Date.now() < lastCall + timeSpacing){
+            return;
+        }
+
+        lastCall = Date.now();
+        func.apply(this, arguments);
+    }
+};
+
+/**
+ * Attempts to clone a object.
+ * @param obj
+ */
+gamekit.clone = function(obj){
+    if(obj === null || typeof obj !== 'object'){
+        return obj;
+    }
+
+    var out,
+        keys,
+        i,
+        o;
+
+    if(obj instanceof gamekit.Sprite){
+        out = new gamekit.Sprite(obj.asset);
+    }
+
+    if(obj instanceof gamekit.Group){
+        out = new gamekit.Group();
+    }
+
+    if(out === undefined){
+        out = {};
+    }
+
+    keys = Object.keys(obj);
+
+    for(i = 0; i < keys.length; i++){
+        o = obj[keys[i]];
+        if(o instanceof gamekit.Group || o instanceof gamekit.Sprite){
+            out[keys[i]] = gamekit.clone(o);
+            continue;
+        }
+        out[keys[i]] = o;
+    }
+
+    return out;
+};
+
+/**
+ * Creates a timer object that also acts as a promise. It will be resolved every time interval has passed.
+ * @param {Number} interval Interval in milliseconds.
+ * @returns {gamekit.Promise}
+ * @constructor
+ */
+
+gamekit.Timer = function(interval, core){
+    var promise,
+        queueObject,
+        lastTick;
+
+    if(!core){
+        core = gamekit;
+    }
+
+    promise = new gamekit.Promise();
+
+    promise.interval = interval;
+
+    queueObject = {
+        finished: false,
+        update: function(time){
+            if(!lastTick){
+                lastTick = time;
+                return;
+            }
+
+            if(lastTick + promise.interval < time){
+                lastTick = time;
+                promise.resolve();
+            }
+        }
+    };
+
+    promise.disable = function(){
+        queueObject.finished = true;
+    };
+
+    promise.enable = function(){
+        queueObject.finished = false;
+        core.addTween(queueObject);
+    };
+
+    promise.enable();
+
+    return promise;
+};
+
+/**
+ * The random seed is calculated freshly on every load of the framework.
+ */
+gamekit.randomSeed = (function (){
+    return Math.floor(Math.random() * (99999)) + 1;
+})();
+
+/**
+ * Implementation of a seeded random number generator.
+ * Set gamekit.randomSeed to any integer to have a custom seed.
+ * @returns {number}
+ */
+gamekit.random = function(){
+    var x = Math.abs(Math.sin(gamekit.randomSeed++)) * 10000;
+    return x - ~~x;
+};
+
+/**
+ * Returns a random number between min and max.
+ * @param min
+ * @param max
+ * @returns {*}
+ */
+gamekit.randomInRange = function(min, max){
+	return (min === max) ? min: (gamekit.random() * (max - min)) + min;
+};
+
+/**
+ * If value is defined, it returns value. If undefined, it returns defaultValue.
+ * @param value
+ * @param defaultValue
+ * @returns {*}
+ */
+gamekit.ifDef = function(value, defaultValue){
+	return value !== undefined ? value : defaultValue;
+};
+
+/**
+ * Extend a given object with all the properties in passed-in object(s).
+ */
+gamekit.extend = function(obj){
+    var i = 1,
+        src,
+        prop;
+    if(arguments.length === 1){
+        return obj;
+    }
+
+    for(;i < arguments.length; i++){
+        if(src = arguments[i]){
+            for(prop in src){
+                obj[prop] = src[prop];
+            }
+        }
+    }
+    return obj;
+};;
+
+    //==================================================================================================================
+
 //Asset loader.
 
 /**
@@ -1131,47 +1302,7 @@ gamekit.Sprite = function (asset){
 	this._destroy = false;
 	this._core = gamekit;
 
-	if(asset instanceof Image){
-		this.asset = asset;
-		this.w = asset.width;
-		this.h = asset.height;
-		this._assetDimensions = {
-			x: 0,
-			y: 0,
-			w: asset.width,
-			h: asset.height
-		};
-		return;
-	}
-
-	if(asset._isSpritemap){
-		this.asset = asset._image;
-		this._spritemap = asset;
-		this._spritemapIndex = 0;
-		this.w = this._spritemap[0].w;
-		this.h = this._spritemap[0].h;
-		return;
-	}
-
-	if(asset._isSpriteAtlas){
-		this.asset = asset._image;
-		this._spriteatlas = asset;
-		this._spriteAtlasKey = asset.keys[0];
-		this.w = asset[asset.keys[0]].w;
-		this.h = asset[asset.keys[0]].h;
-		return;
-	}
-
-	//Asset is dynamic - means its a SpriteMap- or SpriteAtlas element.
-	this.asset = asset.image;
-	this.w = asset.w;
-	this.h = asset.h;
-	this._assetDimensions = {
-		x: asset.x,
-		y: asset.y,
-		w: asset.w,
-		h: asset.h
-	};
+	this.setAsset(asset);
 };
 gamekit.Sprite.prototype = {
 	update: function (){
@@ -1420,9 +1551,12 @@ gamekit.Sprite.prototype = {
 			diffs,
 			propertiesUsed,
 			key,
-			matchresult;
+			matchresult,
+			core;
 
-		beginTime = this._core.getLastRuntime();
+		core = this._core || gamekit;
+
+		beginTime = core.getLastRuntime();
 		endTime = beginTime + duration;
 		promise = new gamekit.Promise(this);
 		that = this;
@@ -1494,7 +1628,7 @@ gamekit.Sprite.prototype = {
 			}
 		};
 
-		this._core.addTween(queueObject);
+		core.addTween(queueObject);
 
 		return promise;
 	},
@@ -1518,6 +1652,49 @@ gamekit.Sprite.prototype = {
 	 */
 	destroy: function (){
 		this._destroy = true;
+	},
+	setAsset: function (asset){
+		if(asset instanceof Image){
+			this.asset = asset;
+			this.w = asset.width;
+			this.h = asset.height;
+			this._assetDimensions = {
+				x: 0,
+				y: 0,
+				w: asset.width,
+				h: asset.height
+			};
+			return;
+		}
+
+		if(asset._isSpritemap){
+			this.asset = asset._image;
+			this._spritemap = asset;
+			this._spritemapIndex = 0;
+			this.w = this._spritemap[0].w;
+			this.h = this._spritemap[0].h;
+			return;
+		}
+
+		if(asset._isSpriteAtlas){
+			this.asset = asset._image;
+			this._spriteatlas = asset;
+			this._spriteAtlasKey = asset.keys[0];
+			this.w = asset[asset.keys[0]].w;
+			this.h = asset[asset.keys[0]].h;
+			return;
+		}
+
+		//Asset is dynamic - means its a SpriteMap- or SpriteAtlas element.
+		this.asset = asset.image;
+		this.w = asset.w;
+		this.h = asset.h;
+		this._assetDimensions = {
+			x: asset.x,
+			y: asset.y,
+			w: asset.w,
+			h: asset.h
+		};
 	},
 	/**
 	 * Apply a force to manipulate the current direction and speed.
@@ -2229,7 +2406,12 @@ gamekit.TileMap.prototype = {
 			layerHeight,
 			layerWidth;
 
-		field = this.layer[layer];
+		if(layer instanceof Array){
+			field = layer;
+		} else {
+			field = this.layer[layer];
+		}
+
 		avoidTiles = avoidTiles || [];
 		openList = [];
 		closedList = [];
@@ -2382,6 +2564,231 @@ gamekit.TileMap.prototype = {
 		return [];
 	}
 };;
+
+var Emitter, Particle;
+
+gamekit.Emitter = Emitter = function (conf){
+	this.x = conf.x;
+	this.y = conf.y;
+	this.w = conf.w;
+	this.h = conf.h;
+	this.debug = conf.debug;
+	this.number = conf.number || 1;
+	this.particles = [];
+	this.spawnTime = conf.spawnTime || 1;
+	this.assets = conf.assets;
+	this.rotation = conf.rotation || 0;
+	this.rebirth = conf.rebirth || 1;
+
+	this._particleUpdate = conf.particleUpdate || function(){};
+
+	var ifDef = gamekit.ifDef;
+
+	this.particlePreset = {
+		minLife: conf.life instanceof Array ? conf.life[0] : ifDef(conf.life, 100),
+		maxLife: conf.life instanceof Array ? conf.life[1] : ifDef(conf.life, 100),
+
+		minInitDirection: conf.direction instanceof Array ? conf.direction[0] : ifDef(conf.direction, 0),
+		maxInitDirection: conf.direction instanceof Array ? conf.direction[1] : ifDef(conf.direction, 0),
+		minDirectionChange: conf.directionChange instanceof Array ? conf.directionChange[0] : ifDef(conf.directionChange, 0),
+		maxDirectionChange: conf.directionChange instanceof Array ? conf.directionChange[1] : ifDef(conf.directionChange, 0),
+		minTargetDirection: conf.directionTarget instanceof Array ? conf.directionTarget[0] : ifDef(conf.directionTarget, 0),
+		maxTargetDirection: conf.directionTarget instanceof Array ? conf.directionTarget[1] : ifDef(conf.directionTarget, 0),
+
+		minInitSpeed: conf.speed instanceof Array ? conf.speed[0] : ifDef(conf.speed, 1),
+		maxInitSpeed: conf.speed instanceof Array ? conf.speed[1] : ifDef(conf.speed, 1),
+		minSpeedChange: conf.speedChange instanceof Array ? conf.speedChange[0] : ifDef(conf.speedChange, 0),
+		maxSpeedChange: conf.speedChange instanceof Array ? conf.speedChange[1] : ifDef(conf.speedChange, 0),
+		minTargetSpeed: conf.speedTarget instanceof Array ? conf.speedTarget[0] : ifDef(conf.speedTarget, 0),
+		maxTargetSpeed: conf.speedTarget instanceof Array ? conf.speedTarget[0] : ifDef(conf.speedTarget, 0),
+
+		minInitScale: conf.scale instanceof Array ? conf.scale[0] : ifDef(conf.scale, 1),
+		maxInitScale: conf.scale instanceof Array ? conf.scale[1] : ifDef(conf.scale, 1),
+		minScaleChange: conf.scaleChange instanceof Array ? conf.scaleChange[0] : ifDef(conf.scaleChange, 0),
+		maxScaleChange: conf.scaleChange instanceof Array ? conf.scaleChange[1] : ifDef(conf.scaleChange, 0),
+		minTargetScale: conf.scaleTarget instanceof Array ? conf.scaleTarget[0] : ifDef(conf.scaleTarget, 0),
+		maxTargetScale: conf.scaleTarget instanceof Array ? conf.scaleTarget[0] : ifDef(conf.scaleTarget, 0),
+
+		minInitAlpha: conf.alpha instanceof Array ? conf.alpha[0] : ifDef(conf.alpha, 1),
+		maxInitAlpha: conf.alpha instanceof Array ? conf.alpha[1] : ifDef(conf.alpha, 1),
+		minAlphaChange: conf.alphaChange instanceof Array ? conf.alphaChange[0] : ifDef(conf.alphaChange, 0),
+		maxAlphaChange: conf.alphaChange instanceof Array ? conf.alphaChange[1] : ifDef(conf.alphaChange, 0),
+		minTargetAlpha: conf.alphaTarget instanceof Array ? conf.alphaTarget[0] : ifDef(conf.alphaTarget, 0),
+		maxTargetAlpha: conf.alphaTarget instanceof Array ? conf.alphaTarget[0] : ifDef(conf.alphaTarget, 0),
+
+		fadeInValue:  conf.fadeInValue || 1,
+		fadeOutValue: conf.fadeOutValue || 1
+	};
+
+	var that = this;
+
+	for (var i = 0; i < this.number; i++) {
+		setTimeout(function (){
+			var p = new Particle(that);
+			that.particles.push(p);
+		}, gamekit.randomInRange(0, this.spawnTime));
+	}
+};
+
+Emitter.prototype = {
+	update: function (){
+		for (var i = 0; i < this.particles.length; i++) {
+			this.particles[i].update();
+		}
+	},
+	draw: function (ctx){
+		ctx.save();
+
+		if(this.rotation){
+			while (this.rotation > 360) {
+				this.rotation -= 360;
+			}
+
+			while (this.rotation < 0) {
+				this.rotation += 360;
+			}
+
+			ctx.rotate(this.rotation * Math.PI / 180);
+		}
+
+		if(this.debug){
+			ctx.fillStyle = '#f00';
+			ctx.strokeStyle = '#f00';
+
+			ctx.strokeRect(this.x, this.y, this.w, this.h);
+		}
+
+		for (var i = 0; i < this.particles.length; i++) {
+			this.particles[i].draw(ctx);
+		}
+
+		ctx.restore();
+	},
+	recycle: function (particle){
+		var pre = this.particlePreset,
+			asset;
+
+		asset = this.assets[Math.round(gamekit.randomInRange(0, this.assets.length - 1))];
+
+		if(asset instanceof String){
+			asset = gamekit.a[asset];
+		}
+
+		particle.setAsset(asset);
+
+		particle.w = asset.w;
+		particle.h = asset.h;
+
+		particle.fadeInValue = pre.fadeInValue;
+		particle.fadeOutValue = pre.fadeOutValue;
+
+		particle.birth = true;
+
+		particle.scaleX = particle.scaleY = gamekit.randomInRange(pre.minInitScale, pre.maxInitScale);
+		particle.scaleChange = gamekit.randomInRange(pre.minScaleChange, pre.maxScaleChange);
+		particle.targetScale = gamekit.randomInRange(pre.minTargetScale, pre.maxTargetScale);
+
+		particle.alpha = gamekit.randomInRange(pre.minInitAlpha, pre.maxInitAlpha);
+		particle.alphaChange = gamekit.randomInRange(pre.minAlphaChange, pre.maxAlphaChange);
+		particle.targetAlpha = gamekit.randomInRange(pre.minTargetAlpha, pre.maxTargetAlpha);
+
+		particle.life = gamekit.randomInRange(pre.minLife, pre.maxLife);
+
+		particle.x = gamekit.randomInRange(this.x, this.x + this.w);
+		particle.y = gamekit.randomInRange(this.y, this.y + this.h);
+
+		particle.direction = gamekit.randomInRange(pre.minInitDirection, pre.maxInitDirection);
+		particle.directionChange = gamekit.randomInRange(pre.minDirectionChange, pre.maxDirectionChange);
+		particle.targetDirection = gamekit.randomInRange(pre.minTargetDirection, pre.maxTargetDirection);
+
+		particle.speed = gamekit.randomInRange(pre.minInitSpeed, pre.maxInitSpeed);
+		particle.speedChange = gamekit.randomInRange(pre.minSpeedChange, pre.maxSpeedChange);
+		particle.targetSpeed = gamekit.randomInRange(pre.minTargetSpeed, pre.maxTargetSpeed);
+
+	}
+};
+
+
+gamekit.Particle = Particle = function (emitter){
+	this.emitter = emitter;
+
+	this.rebirth = emitter.rebirth;
+
+	this.assets = emitter.assets;
+
+	gamekit.Sprite.call(this, {});
+
+	this.stretch = true;
+
+	this._update = emitter._particleUpdate;
+
+	emitter.recycle(this);
+};
+
+Particle.prototype = gamekit.extend(gamekit.Sprite.prototype, {
+	update: function (){
+
+		this.direction += gamekit.randomInRange(-2, 2);
+
+		if(this.birth && this.life > 0 && this.alpha < this.targetAlpha){
+			this.alpha += this.fadeInValue;
+
+			if(this.alpha > this.targetAlpha){
+				this.alpha = this.targetAlpha;
+				this.birth = false;
+			}
+		}
+
+		if(this.scaleChange !== 0 && this.scaleX !== this.targetScale){
+			this.scaleX = this.scaleY += this.scaleChange;
+			if(this.scaleChange > 0 ? (this.scaleX > this.targetScale) : (this.scaleX < this.targetScale)){
+				this.scaleX = this.scaleY = this.targetScale;
+				this.scaleChange = 0;
+			}
+		}
+
+		if(this.alphaChange !== 0 && this.alpha !== this.targetAlpha){
+			this.alpha += this.alphaChange;
+			if(this.alphaChange > 0 ? (this.alpha > this.targetAlpha) : (this.alpha < this.targetAlpha)){
+				this.alpha = this.targetAlpha;
+				this.alphaChange = 0;
+			}
+		}
+
+		if(this.directionChange !== 0 && this.direction !== this.targetDirection){
+			this.direction += this.directionChange;
+			if(this.directionChange > 0 ? (this.direction > this.targetDirection) : (this.direction < this.targetDirection)){
+				this.direction = this.targetDirection;
+				this.directionChange = 0;
+			}
+		}
+
+		if(this.speedChange !== 0 && this.speed !== this.targetSpeed){
+			this.speed += this.speedChange;
+			if(this.speedChange > 0 ? (this.speed < this.targetSpeed) : (this.speed > this.targetSpeed)){
+				this.speed = this.targetSpeed;
+				this.speedChange = 0;
+			}
+		}
+
+		if(this.life <= 0){
+			if(this.alpha > 0){
+				this.alpha -= this.fadeOutValue;
+				return;
+			}
+
+			if(this.rebirth === 1 || gamekit.random() < this.rebirth){
+				this.emitter.recycle(this);
+			}
+			return;
+		}
+
+		this.life--;
+
+		this._update.call(this);
+	}
+});
+;
 
     //==================================================================================================================
 
@@ -2542,7 +2949,7 @@ function inputInitKeyboard(){
 
     window.onkeyup = function (e){
         keyListener(e, false);
-    }
+    };
 
     keyboardInputInitialized = true;
 }
@@ -2671,10 +3078,7 @@ function pointerHitTest(x, y){
 
     pData = shadowCtx.getImageData(x, y, 1, 1).data;
 
-    if(pData[0] || pData[1] || pData[2] || pData[3]){
-        return true;
-    }
-    return false;
+    return !!(pData[0] || pData[1] || pData[2] || pData[3]);
 }
 
 
@@ -2714,7 +3118,8 @@ gamekit.PointerArea.prototype = {
         ctx.scale(this.scaleX, this.scaleY);
 
         ctx.beginPath();
-        ctx.strokeStyle = '#fff';
+        ctx.strokeStyle = '#a584ac';
+		ctx.rect(0, 0, this.w, this.h);
         ctx.stroke();
 
         ctx.restore();
@@ -2831,167 +3236,23 @@ gamekit.onKey = function (keyname){
     keyboardInputListeners[keyname].push(promise);
 
     return promise;
-};;
-
-    //==================================================================================================================
-
-/**
- * Limits the given function and only allows calls to it after the defined waiting time has passed.
- * All calls in between are being dropped.
- * @param {Function} func The function to be limited
- * @param {Number} timeSpacing The amount of time to wait between calls in milliseconds.
- * @return {Function} The limited function.
- */
-gamekit.limitCalls = function(func, timeSpacing){
-    var lastCall;
-
-    lastCall = 0;
-
-    return function(){
-        if(Date.now() < lastCall + timeSpacing){
-            return;
-        }
-
-        lastCall = Date.now();
-        func.apply(this, arguments);
-    }
 };
 
 /**
- * Attempts to clone a object.
- * @param obj
+ * Passively check if the given key is currently pressed.
+ * @param keyname
+ * @returns {boolean}
  */
-gamekit.clone = function(obj){
-    if(obj === null || typeof obj !== 'object'){
-        return obj;
-    }
+gamekit.isPressed = function(keyname){
+	if(!keyboardPressed){
+		return false;
+	}
 
-    var out,
-        keys,
-        i,
-        o;
-
-    if(obj instanceof gamekit.Sprite){
-        out = new gamekit.Sprite(obj.asset);
-    }
-
-    if(obj instanceof gamekit.Group){
-        out = new gamekit.Group();
-    }
-
-    if(out === undefined){
-        out = {};
-    }
-
-    keys = Object.keys(obj);
-
-    for(i = 0; i < keys.length; i++){
-        o = obj[keys[i]];
-        if(o instanceof gamekit.Group || o instanceof gamekit.Sprite){
-            out[keys[i]] = gamekit.clone(o);
-            continue;
-        }
-        out[keys[i]] = o;
-    }
-
-    return out;
+	return !!keyboardPressed[keyname];
 };
 
-/**
- * Creates a timer object that also acts as a promise. It will be resolved every time interval has passed.
- * @param {Number} interval Interval in milliseconds.
- * @returns {gamekit.Promise}
- * @constructor
- */
-
-gamekit.Timer = function(interval, core){
-    var promise,
-        queueObject,
-        lastTick;
-
-    if(!core){
-        core = gamekit;
-    }
-
-    promise = new gamekit.Promise();
-
-    promise.interval = interval;
-
-    queueObject = {
-        finished: false,
-        update: function(time){
-            if(!lastTick){
-                lastTick = time;
-                return;
-            }
-
-            if(lastTick + promise.interval < time){
-                lastTick = time;
-                promise.resolve();
-            }
-        }
-    };
-
-    promise.disable = function(){
-        queueObject.finished = true;
-    };
-
-    promise.enable = function(){
-        queueObject.finished = false;
-        core.addTween(queueObject);
-    };
-
-    promise.enable();
-
-    return promise;
-};
-
-/**
- * The random seed is calculated freshly on every load of the framework.
- */
-gamekit.randomSeed = (function (){
-    return Math.floor(Math.random() * (99999)) + 1;
-})();
-
-/**
- * Implementation of a seeded random number generator.
- * Set gamekit.randomSeed to any integer to have a custom seed.
- * @returns {number}
- */
-gamekit.random = function(){
-    var x = Math.abs(Math.sin(gamekit.randomSeed++)) * 10000;
-    return x - ~~x;
-};
-
-/**
- * Returns a random number between min and max.
- * @param min
- * @param max
- * @returns {*}
- */
-gamekit.randomInRange = function(min, max){
-    return (gamekit.random() * (max - min)) + min;
-};
-
-/**
- * Extend a given object with all the properties in passed-in object(s).
- */
-gamekit.extend = function(obj){
-    var i = 1,
-        src,
-        prop;
-    if(arguments.length === 1){
-        return obj;
-    }
-
-    for(;i < arguments.length; i++){
-        if(src = arguments[i]){
-            for(prop in src){
-                obj[prop] = src[prop];
-            }
-        }
-    }
-    return obj;
+gamekit.initializeKeyboard = function(){
+	inputInitKeyboard();
 };;
 
     //==================================================================================================================

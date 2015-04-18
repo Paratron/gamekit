@@ -103,7 +103,12 @@ gamekit.TileMap.prototype = {
 			layerHeight,
 			layerWidth;
 
-		field = this.layer[layer];
+		if(layer instanceof Array){
+			field = layer;
+		} else {
+			field = this.layer[layer];
+		}
+
 		avoidTiles = avoidTiles || [];
 		openList = [];
 		closedList = [];

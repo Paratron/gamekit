@@ -67,47 +67,7 @@ gamekit.Sprite = function (asset){
 	this._destroy = false;
 	this._core = gamekit;
 
-	if(asset instanceof Image){
-		this.asset = asset;
-		this.w = asset.width;
-		this.h = asset.height;
-		this._assetDimensions = {
-			x: 0,
-			y: 0,
-			w: asset.width,
-			h: asset.height
-		};
-		return;
-	}
-
-	if(asset._isSpritemap){
-		this.asset = asset._image;
-		this._spritemap = asset;
-		this._spritemapIndex = 0;
-		this.w = this._spritemap[0].w;
-		this.h = this._spritemap[0].h;
-		return;
-	}
-
-	if(asset._isSpriteAtlas){
-		this.asset = asset._image;
-		this._spriteatlas = asset;
-		this._spriteAtlasKey = asset.keys[0];
-		this.w = asset[asset.keys[0]].w;
-		this.h = asset[asset.keys[0]].h;
-		return;
-	}
-
-	//Asset is dynamic - means its a SpriteMap- or SpriteAtlas element.
-	this.asset = asset.image;
-	this.w = asset.w;
-	this.h = asset.h;
-	this._assetDimensions = {
-		x: asset.x,
-		y: asset.y,
-		w: asset.w,
-		h: asset.h
-	};
+	this.setAsset(asset);
 };
 gamekit.Sprite.prototype = {
 	update: function (){
@@ -356,9 +316,12 @@ gamekit.Sprite.prototype = {
 			diffs,
 			propertiesUsed,
 			key,
-			matchresult;
+			matchresult,
+			core;
 
-		beginTime = this._core.getLastRuntime();
+		core = this._core || gamekit;
+
+		beginTime = core.getLastRuntime();
 		endTime = beginTime + duration;
 		promise = new gamekit.Promise(this);
 		that = this;
@@ -430,7 +393,7 @@ gamekit.Sprite.prototype = {
 			}
 		};
 
-		this._core.addTween(queueObject);
+		core.addTween(queueObject);
 
 		return promise;
 	},
@@ -454,6 +417,49 @@ gamekit.Sprite.prototype = {
 	 */
 	destroy: function (){
 		this._destroy = true;
+	},
+	setAsset: function (asset){
+		if(asset instanceof Image){
+			this.asset = asset;
+			this.w = asset.width;
+			this.h = asset.height;
+			this._assetDimensions = {
+				x: 0,
+				y: 0,
+				w: asset.width,
+				h: asset.height
+			};
+			return;
+		}
+
+		if(asset._isSpritemap){
+			this.asset = asset._image;
+			this._spritemap = asset;
+			this._spritemapIndex = 0;
+			this.w = this._spritemap[0].w;
+			this.h = this._spritemap[0].h;
+			return;
+		}
+
+		if(asset._isSpriteAtlas){
+			this.asset = asset._image;
+			this._spriteatlas = asset;
+			this._spriteAtlasKey = asset.keys[0];
+			this.w = asset[asset.keys[0]].w;
+			this.h = asset[asset.keys[0]].h;
+			return;
+		}
+
+		//Asset is dynamic - means its a SpriteMap- or SpriteAtlas element.
+		this.asset = asset.image;
+		this.w = asset.w;
+		this.h = asset.h;
+		this._assetDimensions = {
+			x: asset.x,
+			y: asset.y,
+			w: asset.w,
+			h: asset.h
+		};
 	},
 	/**
 	 * Apply a force to manipulate the current direction and speed.

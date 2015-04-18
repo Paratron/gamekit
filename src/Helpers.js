@@ -133,7 +133,17 @@ gamekit.random = function(){
  * @returns {*}
  */
 gamekit.randomInRange = function(min, max){
-    return (gamekit.random() * (max - min)) + min;
+	return (min === max) ? min: (gamekit.random() * (max - min)) + min;
+};
+
+/**
+ * If value is defined, it returns value. If undefined, it returns defaultValue.
+ * @param value
+ * @param defaultValue
+ * @returns {*}
+ */
+gamekit.ifDef = function(value, defaultValue){
+	return value !== undefined ? value : defaultValue;
 };
 
 /**
